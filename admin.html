@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LUCKY GRAB — 관리자</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<style>
+  :root {
+    --bg: #0b0818;
+    --panel: rgba(24, 18, 52, 0.88);
+    --line: rgba(140, 120, 255, 0.28);
+    --ink: #f6f1ff;
+    --muted: #a79cc6;
+    --cyan: #45e9ff;
+    --pink: #ff4fa8;
+    --gold: #ffd76a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px clamp(16px, 4vw, 56px) 60px;
+    background: radial-gradient(90% 60% at 50% 0%, rgba(139, 92, 246, 0.25), transparent 70%),
+                linear-gradient(180deg, #0d0920 0%, #070510 100%);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  }
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 1040px;
+    margin: 0 auto 22px;
+  }
+  h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    background: linear-gradient(90deg, #fff, #ff9bd4, #45e9ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  h1 span { font-size: 14px; color: var(--muted); -webkit-text-fill-color: var(--muted); margin-left: 8px; }
+  header p { margin: 4px 0 0; font-size: 13.5px; color: var(--muted); }
+  .links { display: flex; gap: 10px; }
+  .links a {
+    color: #eafcff;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 9px 14px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--line);
+  }
+  main {
+    max-width: 1040px;
+    margin: 0 auto;
+    display: grid;
+    gap: 18px;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 20px 22px;
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.5);
+  }
+  .panel h2 { margin: 0 0 14px; font-size: 16px; font-weight: 800; color: #eafcff; }
+  .qr-row { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+  .qr-box {
+    width: 152px; height: 152px;
+    padding: 10px;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 0 28px rgba(69, 233, 255, 0.3);
+  }
+  .qr-box svg { width: 100%; height: 100%; display: block; }
+  .qr-meta p { margin: 0 0 8px; }
+  .room-badge {
+    display: inline-block;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    color: var(--gold);
+    background: rgba(255, 215, 106, 0.12);
+    border: 1px solid rgba(255, 215, 106, 0.35);
+    padding: 4px 12px;
+    border-radius: 10px;
+    margin-left: 6px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+  }
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--muted);
+  }
+  select, input[type="text"], input[type="number"] {
+    padding: 9px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: rgba(10, 8, 24, 0.9);
+    color: #fff;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  input[type="range"] { width: 100%; accent-color: var(--cyan); cursor: pointer; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .btn {
+    padding: 10px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .btn.primary {
+    background: linear-gradient(135deg, #ff4fa8, #8b5cf6);
+    border-color: transparent;
+  }
+  .prize-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+  }
+  .prize-table th, .prize-table td {
+    padding: 8px 6px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 13px;
+  }
+  .prize-table input[type="color"] {
+    width: 36px; height: 32px; border: 0; border-radius: 8px; background: transparent; cursor: pointer;
+  }
+  .toast {
+    position: fixed;
+    left: 50%; bottom: 26px;
+    transform: translate(-50%, 14px);
+    padding: 11px 20px;
+    border-radius: 999px;
+    background: rgba(20, 14, 42, 0.96);
+    border: 1px solid var(--cyan);
+    color: #eafcff;
+    font-size: 13px;
+    font-weight: 800;
+    opacity: 0;
+    pointer-events: none;
+    transition: 0.25s;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>LUCKY GRAB <span>관리자</span></h1>
+      <p>태블릿·웹에서 방 코드, 문자 크기, QR 위치, 경품 목록과 재고를 관리할 수 있어요.</p>
+    </div>
+    <nav class="links">
+      <a href="index.html" target="_blank" rel="noopener">인형뽑기 화면 열기 ↗</a>
+      <a href="controller.html" target="_blank" rel="noopener">스마트폰 컨트롤러 ↗</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>지금 방 · 스마트폰 컨트롤러 QR</h2>
+      <div class="qr-row">
+        <div class="qr-box" id="qrBox"></div>
+        <div class="qr-meta">
+          <p>방 코드 <span class="room-badge" id="roomText">──────</span></p>
+          <p id="ctrlUrlText" style="font-family:monospace;color:var(--cyan);font-size:13px;word-break:break-all"></p>
+          <p style="font-size:12.5px;color:var(--muted)">태블릿에서 인형뽑기 화면을 띄워 두면 손님이 스마트폰으로 QR을 찍어 집게를 조작하거나, 태블릿 화면의 터치 패드로 직접 뽑을 수 있습니다.</p>
+          <div class="btn-row">
+            <button class="btn primary" id="newRoomBtn" type="button">🔑 새 방 만들기</button>
+            <button class="btn" id="openDisplayBtn" type="button">이 방으로 인형뽑기 열기 ↗</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>화면 설정 (문자 크기 · QR 위치)</h2>
+      <div class="grid">
+        <label>문자 크기 (<span id="fontScaleVal">100</span>%)
+          <input type="range" id="fontScaleInp" min="70" max="160" step="5" value="100" />
+        </label>
+        <label>QR 위치
+          <select id="qrPosSel">
+            <option value="right">오른쪽 가운데 (기본)</option>
+            <option value="bottom-right">오른쪽 아래</option>
+            <option value="bottom-left">왼쪽 아래</option>
+            <option value="top-right">오른쪽 위</option>
+            <option value="top-left">왼쪽 위</option>
+            <option value="bottom-center">하단 가운데</option>
+          </select>
+        </label>
+        <label>QR 크기 (<span id="qrSizeVal">100</span>%)
+          <input type="range" id="qrSizeInp" min="70" max="140" step="5" value="100" />
+        </label>
+        <label style="flex-direction:row;align-items:center;gap:10px;padding-top:18px">
+          <input type="checkbox" id="qrVisChk" checked style="width:18px;height:18px;accent-color:var(--cyan)" />
+          QR 코드 표시
+        </label>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="saveUiBtn" type="button">화면 설정 저장</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>🎁 경품 목록 및 수량 관리</h2>
+      <table class="prize-table">
+        <thead>
+          <tr>
+            <th>이모지</th>
+            <th>색상</th>
+            <th>경품 이름</th>
+            <th>확률 가중치</th>
+            <th>전체 수량</th>
+            <th>삭제</th>
+          </tr>
+        </thead>
+        <tbody id="prizeTbody"></tbody>
+      </table>
+      <div class="btn-row">
+        <button class="btn" id="addPrizeBtn" type="button">+ 경품 추가</button>
+        <button class="btn primary" id="savePrizesBtn" type="button">경품 저장 및 재고 채우기</button>
+        <button class="btn" id="resetDefaultPrizesBtn" type="button">기본 경품으로 초기화</button>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="vendor/qrcode.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    var $ = function (id) { return document.getElementById(id); };
+    var DEFAULT_PRIZES = [
+      { id: 'americano', name: '스타벅스 아메리카노', color: '#34d399', emoji: '☕', weight: 30, quantity: 8 },
+      { id: 'cu3000', name: 'CU 모바일 상품권 3천원', color: '#a78bfa', emoji: '🎟️', weight: 25, quantity: 5 },
+      { id: 'baskin', name: '배스킨라빈스 싱글레귤러', color: '#f472b6', emoji: '🍦', weight: 20, quantity: 4 },
+      { id: 'chicken', name: '치킨 기프티콘', color: '#f59e0b', emoji: '🍗', weight: 15, quantity: 2 },
+      { id: 'giftcard', name: '문화상품권 1만원', color: '#fbbf24', emoji: '💳', weight: 7, quantity: 2 },
+      { id: 'airpods', name: '에어팟 프로', color: '#38bdf8', emoji: '🎧', weight: 3, quantity: 1 }
+    ];
+
+    var room = '';
+    var prizes = [];
+
+    function toast(msg) {
+      var t = $('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(function () { t.classList.remove('show'); }, 2400);
+    }
+
+    function ensureRoom() {
+      try { room = (localStorage.getItem('luckygrab:room') || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); } catch (_) {}
+      if (room.length < 4) {
+        var chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+        room = '';
+        for (var i = 0; i < 6; i++) room += chars[(Math.random() * chars.length) | 0];
+        try { localStorage.setItem('luckygrab:room', room); } catch (_) {}
+      }
+      $('roomText').textContent = room;
+      var base = location.origin + location.pathname.replace(/[^/]*$/, '');
+      var url = base + 'controller.html?room=' + room;
+      $('ctrlUrlText').textContent = url;
+      try {
+        var qr = qrcode(0, 'M');
+        qr.addData(url);
+        qr.make();
+        $('qrBox').innerHTML = qr.createSvgTag({ cellSize: 5, margin: 2, scalable: true });
+      } catch (_) {}
+    }
+
+    function publishRelay(obj) {
+      if (!room) return;
+      fetch('https://ntfy.sh/luckygrab-' + room.toLowerCase(), {
+        method: 'POST',
+        body: JSON.stringify(obj),
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
+      }).catch(function () {});
+    }
+
+    function loadUi() {
+      var u = { fontScale: 100, qrPosition: 'right', qrSize: 100, qrVisible: true };
+      try { u = Object.assign(u, JSON.parse(localStorage.getItem('luckygrab:uiSettings') || '{}')); } catch (_) {}
+      $('fontScaleInp').value = u.fontScale || 100;
+      $('fontScaleVal').textContent = u.fontScale || 100;
+      $('qrPosSel').value = u.qrPosition || 'right';
+      $('qrSizeInp').value = u.qrSize || 100;
+      $('qrSizeVal').textContent = u.qrSize || 100;
+      $('qrVisChk').checked = u.qrVisible !== false;
+    }
+
+    $('fontScaleInp').addEventListener('input', function () { $('fontScaleVal').textContent = this.value; });
+    $('qrSizeInp').addEventListener('input', function () { $('qrSizeVal').textContent = this.value; });
+
+    $('saveUiBtn').addEventListener('click', function () {
+      var u = {
+        fontScale: Number($('fontScaleInp').value) || 100,
+        qrPosition: $('qrPosSel').value,
+        qrSize: Number($('qrSizeInp').value) || 100,
+        qrVisible: $('qrVisChk').checked
+      };
+      try { localStorage.setItem('luckygrab:uiSettings', JSON.stringify(u)); } catch (_) {}
+      publishRelay({ k: 'settings', v: u });
+      toast('화면 설정을 저장했습니다!');
+    });
+
+    $('newRoomBtn').addEventListener('click', function () {
+      var chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+      var next = '';
+      for (var i = 0; i < 6; i++) next += chars[(Math.random() * chars.length) | 0];
+      try { localStorage.setItem('luckygrab:room', next); } catch (_) {}
+      ensureRoom();
+      toast('새 방 코드 ' + next + ' 생성 완료!');
+    });
+
+    $('openDisplayBtn').addEventListener('click', function () {
+      window.open('index.html?room=' + room, '_blank', 'noopener');
+    });
+
+    function renderPrizesTable() {
+      var tb = $('prizeTbody');
+      tb.innerHTML = '';
+      prizes.forEach(function (p, idx) {
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td><input type="text" data-k="emoji" data-i="' + idx + '" value="' + (p.emoji || '🎁') + '" style="width:54px;text-align:center" /></td>' +
+          '<td><input type="color" data-k="color" data-i="' + idx + '" value="' + (p.color || '#34d399') + '" /></td>' +
+          '<td><input type="text" data-k="name" data-i="' + idx + '" value="' + (p.name || '') + '" style="width:100%;min-width:140px" /></td>' +
+          '<td><input type="number" data-k="weight" data-i="' + idx + '" value="' + (p.weight || 10) + '" min="1" max="100" style="width:74px" /></td>' +
+          '<td><input type="number" data-k="quantity" data-i="' + idx + '" value="' + (p.quantity || 5) + '" min="1" max="999" style="width:74px" /></td>' +
+          '<td><button class="btn" data-del="' + idx + '" type="button">✕</button></td>';
+        tb.appendChild(tr);
+      });
+    }
+
+    $('prizeTbody').addEventListener('input', function (e) {
+      var el = e.target;
+      var idx = Number(el.dataset.i);
+      var k = el.dataset.k;
+      if (!prizes[idx] || !k) return;
+      prizes[idx][k] = (k === 'weight' || k === 'quantity') ? Math.max(1, Number(el.value) || 1) : el.value;
+    });
+
+    $('prizeTbody').addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-del]');
+      if (!btn) return;
+      if (prizes.length <= 1) { toast('최소 1개의 경품은 있어야 합니다'); return; }
+      prizes.splice(Number(btn.dataset.del), 1);
+      renderPrizesTable();
+    });
+
+    $('addPrizeBtn').addEventListener('click', function () {
+      prizes.push({ id: 'p-' + Date.now().toString(36), name: '새 경품', color: '#ff4fa8', emoji: '🎁', weight: 15, quantity: 5 });
+      renderPrizesTable();
+    });
+
+    $('savePrizesBtn').addEventListener('click', function () {
+      try {
+        localStorage.setItem('luckygrab:prizes', JSON.stringify(prizes));
+        localStorage.removeItem('luckygrab:stock');
+      } catch (_) {}
+      publishRelay({ k: 'prizes', list: prizes });
+      toast('🎁 경품 목록을 저장하고 재고를 모두 채웠습니다!');
+    });
+
+    $('resetDefaultPrizesBtn').addEventListener('click', function () {
+      if (!confirm('기본 경품 6종으로 되돌릴까요?')) return;
+      prizes = DEFAULT_PRIZES.map(function (p) { return Object.assign({}, p); });
+      try {
+        localStorage.removeItem('luckygrab:prizes');
+        localStorage.removeItem('luckygrab:stock');
+      } catch (_) {}
+      renderPrizesTable();
+      publishRelay({ k: 'prizes', list: prizes });
+      toast('기본 경품으로 초기화했습니다!');
+    });
+
+    function loadPrizes() {
+      try {
+        var saved = JSON.parse(localStorage.getItem('luckygrab:prizes') || 'null');
+        if (Array.isArray(saved) && saved.length) {
+          prizes = saved;
+          renderPrizesTable();
+          return;
+        }
+      } catch (_) {}
+      fetch('prizes.json').then(function (r) { return r.json(); }).then(function (raw) {
+        prizes = (raw && Array.isArray(raw.prizes) && raw.prizes.length) ? raw.prizes : DEFAULT_PRIZES.slice();
+        renderPrizesTable();
+      }).catch(function () {
+        prizes = DEFAULT_PRIZES.slice();
+        renderPrizesTable();
+      });
+    }
+
+    ensureRoom();
+    loadUi();
+    loadPrizes();
+  })();
+  </script>
+</body>
+</html>

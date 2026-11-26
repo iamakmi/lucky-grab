@@ -15,6 +15,9 @@
 
   <header class="top">
     <div class="logo">LUCKY<span>GRAB</span></div>
+    <button class="room-chip" id="roomChip" type="button" title="방 코드 변경" hidden>
+      방 <b id="roomLabel">──────</b>
+    </button>
     <div class="pill" id="connPill">
       <span class="dot"></span>
       <span id="connText">연결 중…</span>
@@ -59,6 +62,17 @@
       <div class="win-prize" id="winPrize">경품</div>
       <div class="win-sub" id="winSub"></div>
       <button class="win-close" id="winClose">확인</button>
+    </div>
+  </div>
+
+  <!-- 방 코드 입력 (QR 없이 컨트롤러 주소만 열었을 때) -->
+  <div class="overlay" id="joinOverlay">
+    <div class="win-card">
+      <div class="win-kicker">🔑 ROOM CODE</div>
+      <div class="win-prize" style="font-size:22px;margin:8px 0">방 코드를 입력해 주세요</div>
+      <div class="win-sub">태블릿·메인 화면 QR 아래에 적힌 방 코드를 넣으면 연결됩니다.</div>
+      <input id="joinInput" class="join-input" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="예: K7M2PQ" />
+      <button class="win-close" id="joinBtn" type="button">이 방으로 연결하기</button>
     </div>
   </div>
 

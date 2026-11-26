@@ -1633,8 +1633,10 @@
   }
 
   let relayInputExpire = null;
+  let relayWs = null;
   function connectRelay() {
     if (S.connected) return;
+    if (relayWs) { try { relayWs.close(); } catch (_) {} relayWs = null; }
     ensureRoomCode();
     setupQR(null);
     let ws;
@@ -1643,6 +1645,7 @@
     } catch (e) {
       return;
     }
+    relayWs = ws;
     ws.onopen = () => {
       S.relayConnected = true;
     };
@@ -1669,12 +1672,39 @@
         }
       } else if (msg.k === 'grab') {
         startStandaloneGrab(msg.label || '스마트폰');
+      } else if (msg.k === 'settings' && msg.v) {
+        applyUiSettings(msg.v, false);
+      } else if (msg.k === 'reset_stock') {
+        try { localStorage.removeItem('luckygrab:stock'); } catch (_) {}
+        for (const p of S.prizes) p.remaining = p.quantity || 5;
+        saveStandaloneStock();
+        buildPile();
+        renderPrizes();
+        flashNotice('🎁 경품 재고를 모두 채웠습니다!');
+      } else if (msg.k === 'prizes' && Array.isArray(msg.list)) {
+        try { localStorage.setItem('luckygrab:prizes', JSON.stringify(msg.list)); } catch (_) {}
+        S.prizes = loadStandalonePrizes(msg.list);
+        buildPile();
+        renderPrizes();
+        flashNotice('🎁 경품 목록이 업데이트되었습니다!');
       }
     };
     ws.onclose = () => {
       S.relayConnected = false;
-      if (!S.connected) setTimeout(connectRelay, 2500);
+      if (!S.connected && relayWs === ws) setTimeout(connectRelay, 2500);
     };
+  }
+
+  function makeNewRoomCode() {
+    if (!window.confirm('새 방 코드를 만들까요?\n\nQR 코드가 새 주소로 바뀝니다.')) return;
+    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+    let room = '';
+    for (let i = 0; i < 6; i++) room += chars[(Math.random() * chars.length) | 0];
+    try { localStorage.setItem('luckygrab:room', room); } catch (_) {}
+    S.room = room;
+    S.controllerCount = 0;
+    connectRelay();
+    flashNotice('🔑 새 방 코드: ' + room);
   }
 
   function enableStandaloneMode() {
@@ -1682,20 +1712,33 @@
     S.standalone = true;
     S.phase = 'ready';
     ensureRoomCode();
-    fetch('prizes.json').then((r) => r.json()).then((raw) => {
-      if (raw && raw.subtitle) elBrandSub.textContent = raw.subtitle;
-      S.prizes = loadStandalonePrizes(Array.isArray(raw.prizes) ? raw.prizes : DEFAULT_PRIZES);
+    let customPrizes = null;
+    try {
+      const rawCustom = localStorage.getItem('luckygrab:prizes');
+      if (rawCustom) customPrizes = JSON.parse(rawCustom);
+    } catch (_) {}
+    if (Array.isArray(customPrizes) && customPrizes.length) {
+      S.prizes = loadStandalonePrizes(customPrizes);
       buildPile();
       renderPrizes();
       setupQR(null);
       updateUI();
-    }).catch(() => {
-      S.prizes = loadStandalonePrizes(DEFAULT_PRIZES);
-      buildPile();
-      renderPrizes();
-      setupQR(null);
-      updateUI();
-    });
+    } else {
+      fetch('prizes.json').then((r) => r.json()).then((raw) => {
+        if (raw && raw.subtitle) elBrandSub.textContent = raw.subtitle;
+        S.prizes = loadStandalonePrizes(Array.isArray(raw.prizes) ? raw.prizes : DEFAULT_PRIZES);
+        buildPile();
+        renderPrizes();
+        setupQR(null);
+        updateUI();
+      }).catch(() => {
+        S.prizes = loadStandalonePrizes(DEFAULT_PRIZES);
+        buildPile();
+        renderPrizes();
+        setupQR(null);
+        updateUI();
+      });
+    }
     connectRelay();
   }
 
@@ -1779,6 +1822,29 @@
     if (resetBtn) {
       resetBtn.addEventListener('click', resetPrizeStock);
     }
+    const newRoomBtn = $('newRoomBtn');
+    if (newRoomBtn) {
+      newRoomBtn.addEventListener('click', makeNewRoomCode);
+    }
+
+    window.addEventListener('storage', (ev) => {
+      if (!ev.key) return;
+      if (ev.key === 'luckygrab:uiSettings' && ev.newValue) {
+        try { applyUiSettings(JSON.parse(ev.newValue), false); } catch (_) {}
+      } else if (ev.key === 'luckygrab:prizes' && ev.newValue) {
+        try {
+          S.prizes = loadStandalonePrizes(JSON.parse(ev.newValue));
+          buildPile();
+          renderPrizes();
+        } catch (_) {}
+      } else if (ev.key === 'luckygrab:stock') {
+        S.prizes = loadStandalonePrizes(S.prizes);
+        renderPrizes();
+      } else if (ev.key === 'luckygrab:room' && ev.newValue && ev.newValue !== S.room) {
+        S.room = ev.newValue;
+        connectRelay();
+      }
+    });
 
     setupAdminPanel();
   }
@@ -1938,13 +2004,16 @@
   buildPile();
   renderPrizes();
   updateUI();
-  net.connect();
+  // GitHub Pages 또는 file:// 로 열었을 때는 기다리지 않고 즉시 태블릿 웹 단독+QR중계 모드로 시작!
+  if (/\.github\.io$/i.test(location.hostname) || location.protocol === 'file:') {
+    enableStandaloneMode();
+  } else {
+    net.connect();
+    setTimeout(() => {
+      if (!S.connected) enableStandaloneMode();
+    }, 1000);
+  }
   requestAnimationFrame(frame);
-
-  // 로컬 Node 서버가 없는 환경(GitHub Pages 태블릿 접속 등)에서는 1.2초 후 자동으로 웹 단독+QR중계 모드로 전환
-  setTimeout(() => {
-    if (!S.connected) enableStandaloneMode();
-  }, 1200);
   // 화면 갱신 (연결 상태 주기 점검)
   setInterval(() => {
     if (!S.connected && !S.standalone) updateUI();

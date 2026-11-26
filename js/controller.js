@@ -61,8 +61,40 @@
 
   function readRoomFromUrl() {
     const m = location.search.match(/[?&]room=([A-Za-z0-9]+)/);
-    return m ? m[1].toUpperCase() : '';
+    if (m) return m[1].toUpperCase();
+    try { return (localStorage.getItem('luckygrab:room') || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); } catch (_) { return ''; }
   }
+
+  function showJoinOverlay() {
+    const ov = $('joinOverlay');
+    const inp = $('joinInput');
+    if (!ov) return;
+    elBlocker.classList.add('hide');
+    if (inp) inp.value = S.room || '';
+    ov.classList.add('show');
+    setTimeout(() => { if (inp) inp.focus(); }, 100);
+  }
+
+  function joinRoomFromInput() {
+    const inp = $('joinInput');
+    const ov = $('joinOverlay');
+    if (!inp) return;
+    const code = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (code.length < 4) {
+      toast('방 코드는 4자 이상 입력해 주세요');
+      return;
+    }
+    S.room = code;
+    try { localStorage.setItem('luckygrab:room', code); } catch (_) {}
+    if (ov) ov.classList.remove('show');
+    connectRelayMode();
+  }
+
+  const elRoomChip = $('roomChip');
+  const elRoomLabel = $('roomLabel');
+  if (elRoomChip) elRoomChip.addEventListener('click', showJoinOverlay);
+  if ($('joinBtn')) $('joinBtn').addEventListener('click', joinRoomFromInput);
+  if ($('joinInput')) $('joinInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') joinRoomFromInput(); });
 
   function relayTopic() {
     return 'luckygrab-' + (S.room || 'default').toLowerCase();
@@ -78,6 +110,10 @@
   }
 
   function connectRelayMode() {
+    if (!S.room) {
+      showJoinOverlay();
+      return;
+    }
     S.relayMode = true;
     S.connected = true;
     S.everConnected = true;
@@ -85,6 +121,10 @@
     S.phase = 'ready';
     S.label = '스마트폰';
     elBlocker.classList.add('hide');
+    if (elRoomChip && elRoomLabel) {
+      elRoomChip.hidden = false;
+      elRoomLabel.textContent = S.room;
+    }
     elFoot.textContent = '꾹 누르고 있으면 집게가 계속 움직여요 (방 ' + S.room + ')';
     render();
     publishRelay({ k: 'hello', label: S.label });
@@ -129,7 +169,7 @@
 
   function connect() {
     S.room = readRoomFromUrl();
-    if (S.room && /\.github\.io$/i.test(location.hostname)) {
+    if (/\.github\.io$/i.test(location.hostname) || location.protocol === 'file:') {
       connectRelayMode();
       return;
     }
@@ -137,17 +177,16 @@
     try {
       ws = new WebSocket(wsUrl());
     } catch (e) {
-      if (S.room) { connectRelayMode(); return; }
-      setTimeout(connect, 2000);
+      connectRelayMode();
       return;
     }
     S.ws = ws;
     const fallbackTimer = setTimeout(() => {
-      if (!S.connected && S.room) {
+      if (!S.connected) {
         try { ws.close(); } catch (_) {}
         connectRelayMode();
       }
-    }, 1500);
+    }, 1300);
 
     ws.onopen = () => {
       clearTimeout(fallbackTimer);

@@ -560,6 +560,10 @@ const server = http.createServer((req, res) => {
     sendFile(res, path.join(PUBLIC_DIR, 'controller.html'));
     return;
   }
+  if (pathname === '/admin' || pathname === '/admin/' || pathname === '/admin.html') {
+    sendFile(res, path.join(PUBLIC_DIR, 'admin.html'));
+    return;
+  }
   if (pathname === '/favicon.ico') {
     sendFile(res, path.join(PUBLIC_DIR, 'favicon.svg'));
     return;
