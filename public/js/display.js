@@ -239,67 +239,129 @@
   /* --------------------------------------------------------------- sprites */
   const spriteCache = new Map();
   function capsuleSprite(prize) {
-    const key = prize.id + '|' + prize.color;
+    const key = prize.id + '|' + prize.color + '|' + (prize.emoji || '');
     if (spriteCache.has(key)) return spriteCache.get(key);
-    const SZ = 168;
+    const SZ = 220;
     const c = document.createElement('canvas');
     c.width = c.height = SZ;
     const g = c.getContext('2d');
-    const cx = SZ / 2, cy = SZ / 2, R = SZ / 2 - 7;
+    const cx = SZ / 2, cy = SZ / 2, R = SZ / 2 - 9;
     const col = prize.color || '#9aa7ff';
 
-    const grad = g.createRadialGradient(cx - R * 0.34, cy - R * 0.4, R * 0.05, cx, cy, R * 1.02);
-    grad.addColorStop(0, mixHex(col, '#ffffff', 0.78));
-    grad.addColorStop(0.3, mixHex(col, '#ffffff', 0.34));
-    grad.addColorStop(0.68, col);
-    grad.addColorStop(1, mixHex(col, '#05030f', 0.62));
-    g.beginPath();
-    g.arc(cx, cy, R, 0, TAU);
-    g.fillStyle = grad;
-    g.fill();
-
-    // 캡슐 이음선 (위·아래 반쪽)
+    // 1) 전체 구 형태 클리핑
     g.save();
     g.beginPath();
-    g.arc(cx, cy, R * 0.996, 0, TAU);
+    g.arc(cx, cy, R, 0, TAU);
     g.clip();
 
-    // 아래 반쪽을 살짝 어둡게
+    // 2) 아래쪽 반구 (불투명 유광 컬러 플라스틱 + 입체 음영)
+    const botGrad = g.createRadialGradient(cx - R * 0.28, cy + R * 0.18, R * 0.05, cx, cy + R * 0.1, R * 1.05);
+    botGrad.addColorStop(0, mixHex(col, '#ffffff', 0.45));
+    botGrad.addColorStop(0.45, col);
+    botGrad.addColorStop(0.82, mixHex(col, '#05020e', 0.48));
+    botGrad.addColorStop(1, mixHex(col, '#020108', 0.72));
+    g.fillStyle = botGrad;
+    g.fillRect(0, cy - R * 0.12, SZ, R * 1.25);
+
+    // 3) 위쪽 반구 (투명 아크릴 돔 내부 배경 — 은은한 컬러 틴트)
+    const topGrad = g.createRadialGradient(cx - R * 0.3, cy - R * 0.35, R * 0.04, cx, cy, R * 1.02);
+    topGrad.addColorStop(0, 'rgba(255, 255, 255, 0.42)');
+    topGrad.addColorStop(0.45, rgba(col, 0.26));
+    topGrad.addColorStop(0.85, rgba(mixHex(col, '#08041a', 0.45), 0.55));
+    topGrad.addColorStop(1, rgba(mixHex(col, '#050210', 0.75), 0.85));
+    g.fillStyle = topGrad;
+    g.fillRect(0, 0, SZ, cy + R * 0.18);
+
+    // 4) 투명 돔 안에 들어있는 경품 피규어/이모지 + 황금빛 홀로그램 받침
+    g.save();
+    const innerPadGrad = g.createRadialGradient(cx, cy + R * 0.04, 2, cx, cy + R * 0.04, R * 0.72);
+    innerPadGrad.addColorStop(0, mixHex(col, '#ffffff', 0.65));
+    innerPadGrad.addColorStop(0.7, col);
+    innerPadGrad.addColorStop(1, mixHex(col, '#0a051c', 0.55));
+    g.fillStyle = innerPadGrad;
     g.beginPath();
-    g.ellipse(cx, cy - R * 0.02, R * 1.02, R * 0.30, 0, 0, Math.PI);
-    g.fillStyle = 'rgba(0,0,0,0.16)';
+    g.ellipse(cx, cy + R * 0.04, R * 0.88, R * 0.24, 0, 0, TAU);
     g.fill();
 
-    // 이음선
-    g.beginPath();
-    g.ellipse(cx, cy - R * 0.02, R * 1.0, R * 0.30, 0, 0, TAU);
-    g.strokeStyle = 'rgba(255,255,255,0.42)';
-    g.lineWidth = R * 0.055;
-    g.stroke();
-    g.beginPath();
-    g.ellipse(cx, cy - R * 0.02 + R * 0.05, R * 1.0, R * 0.28, 0, 0, Math.PI);
-    g.strokeStyle = 'rgba(0,0,0,0.22)';
-    g.lineWidth = R * 0.05;
-    g.stroke();
+    // 캡슐 내부 경품 아이콘
+    const em = prize.emoji || '🎁';
+    g.font = `${Math.round(R * 0.74)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.shadowColor = 'rgba(0, 0, 0, 0.45)';
+    g.shadowBlur = R * 0.14;
+    g.shadowOffsetY = R * 0.05;
+    g.fillText(em, cx, cy - R * 0.18);
     g.restore();
 
-    // 림 라이트
+    // 5) 위·아래 결합 플라스틱 메탈릭 링 (이음선)
     g.beginPath();
-    g.arc(cx, cy, R * 0.94, Math.PI * 1.05, Math.PI * 1.62);
-    g.strokeStyle = 'rgba(255,255,255,0.55)';
-    g.lineWidth = R * 0.055;
-    g.lineCap = 'round';
+    g.ellipse(cx, cy + R * 0.04, R * 0.99, R * 0.25, 0, 0, Math.PI);
+    g.lineWidth = R * 0.095;
+    g.strokeStyle = mixHex(col, '#ffffff', 0.38);
     g.stroke();
 
-    // 하이라이트
-    const hg = g.createRadialGradient(cx - R * 0.36, cy - R * 0.42, 0, cx - R * 0.36, cy - R * 0.42, R * 0.56);
-    hg.addColorStop(0, 'rgba(255,255,255,0.92)');
-    hg.addColorStop(0.4, 'rgba(255,255,255,0.30)');
-    hg.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = hg;
     g.beginPath();
-    g.arc(cx - R * 0.36, cy - R * 0.42, R * 0.56, 0, TAU);
+    g.ellipse(cx, cy + R * 0.055, R * 0.99, R * 0.25, 0, 0, Math.PI);
+    g.lineWidth = R * 0.045;
+    g.strokeStyle = 'rgba(0, 0, 0, 0.38)';
+    g.stroke();
+
+    g.beginPath();
+    g.ellipse(cx, cy + R * 0.025, R * 0.99, R * 0.25, 0, 0, Math.PI);
+    g.lineWidth = R * 0.032;
+    g.strokeStyle = 'rgba(255, 255, 255, 0.78)';
+    g.stroke();
+
+    // 6) 구 전체의 아크릴 굴절 & 앰비언트 오클루전(가장자리 깊이감)
+    const rimShade = g.createRadialGradient(cx, cy, R * 0.68, cx, cy, R);
+    rimShade.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    rimShade.addColorStop(0.76, 'rgba(0, 0, 0, 0.12)');
+    rimShade.addColorStop(1, 'rgba(4, 2, 14, 0.58)');
+    g.fillStyle = rimShade;
+    g.beginPath();
+    g.arc(cx, cy, R, 0, TAU);
     g.fill();
+
+    // 7) 스튜디오 소프트박스 반사 하이라이트 (왼쪽 위 곡면 광택)
+    g.save();
+    g.translate(cx - R * 0.34, cy - R * 0.38);
+    g.rotate(-0.58);
+    const spec1 = g.createRadialGradient(0, 0, 1, 0, 0, R * 0.44);
+    spec1.addColorStop(0, 'rgba(255, 255, 255, 0.96)');
+    spec1.addColorStop(0.45, 'rgba(255, 255, 255, 0.42)');
+    spec1.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    g.fillStyle = spec1;
+    g.beginPath();
+    g.ellipse(0, 0, R * 0.42, R * 0.22, 0, 0, TAU);
+    g.fill();
+
+    // 선명한 창문 반사 포인트
+    g.fillStyle = 'rgba(255, 255, 255, 0.92)';
+    g.beginPath();
+    g.ellipse(-R * 0.06, -R * 0.04, R * 0.16, R * 0.075, 0.1, 0, TAU);
+    g.fill();
+    g.restore();
+
+    // 오른쪽 아래 반사광 (바닥 네온 반사)
+    const bounce = g.createRadialGradient(cx + R * 0.38, cy + R * 0.48, 2, cx + R * 0.38, cy + R * 0.48, R * 0.55);
+    bounce.addColorStop(0, 'rgba(255, 255, 255, 0.42)');
+    bounce.addColorStop(0.5, rgba(mixHex(col, '#70f5ff', 0.5), 0.22));
+    bounce.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    g.fillStyle = bounce;
+    g.beginPath();
+    g.arc(cx + R * 0.38, cy + R * 0.48, R * 0.55, 0, TAU);
+    g.fill();
+
+    g.restore();
+
+    // 8) 외곽 프레넬(Fresnel) 유리 테두리 빛
+    g.beginPath();
+    g.arc(cx, cy, R - 1, Math.PI * 0.85, Math.PI * 1.78);
+    g.strokeStyle = 'rgba(255, 255, 255, 0.72)';
+    g.lineWidth = R * 0.042;
+    g.lineCap = 'round';
+    g.stroke();
 
     spriteCache.set(key, c);
     return c;
@@ -680,37 +742,200 @@
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, W, H);
 
-    // 무대 조명
-    const g = ctx.createRadialGradient(W * 0.5, H * 0.28, 10, W * 0.5, H * 0.42, Math.max(W, H) * 0.62);
-    g.addColorStop(0, 'rgba(120,90,255,0.22)');
-    g.addColorStop(0.45, 'rgba(90,40,180,0.10)');
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
+    // 아케이드 홀 배경 보케(Bokeh) 네온 조명들
+    const bokehList = [
+      { x: 0.14, y: 0.24, r: 0.16, c: 'rgba(255, 70, 180, 0.14)' },
+      { x: 0.86, y: 0.22, r: 0.18, c: 'rgba(60, 220, 255, 0.13)' },
+      { x: 0.22, y: 0.58, r: 0.14, c: 'rgba(140, 90, 255, 0.14)' },
+      { x: 0.78, y: 0.62, r: 0.15, c: 'rgba(255, 180, 70, 0.11)' },
+      { x: 0.50, y: 0.26, r: 0.36, c: 'rgba(130, 90, 255, 0.22)' }
+    ];
+    const maxDim = Math.max(W, H);
+    for (let i = 0; i < bokehList.length; i++) {
+      const b = bokehList[i];
+      const bx = W * b.x + Math.sin(clock.t * 0.4 + i) * 18;
+      const by = H * b.y + Math.cos(clock.t * 0.35 + i) * 12;
+      const br = maxDim * b.r;
+      const bg = ctx.createRadialGradient(bx, by, 4, bx, by, br);
+      bg.addColorStop(0, b.c);
+      bg.addColorStop(0.55, b.c.replace(/[\d.]+\)$/, '0.04)'));
+      bg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+    }
 
-    // 바닥 반사
-    const fy = H * 0.86;
-    const fg = ctx.createRadialGradient(W * 0.5, fy, 10, W * 0.5, fy, W * 0.45);
-    fg.addColorStop(0, 'rgba(255,80,180,0.16)');
-    fg.addColorStop(0.5, 'rgba(120,60,220,0.08)');
-    fg.addColorStop(1, 'rgba(0,0,0,0)');
+    // 유광 아케이드 타일 바닥 & 원근 그리드 반사
+    const fy = H * 0.82;
+    const floorG = ctx.createLinearGradient(0, fy, 0, H);
+    floorG.addColorStop(0, 'rgba(20, 12, 44, 0.0)');
+    floorG.addColorStop(0.25, 'rgba(24, 15, 52, 0.72)');
+    floorG.addColorStop(1, 'rgba(6, 4, 15, 0.96)');
+    ctx.fillStyle = floorG;
+    ctx.fillRect(0, fy, W, H - fy);
+
+    const fg = ctx.createRadialGradient(W * 0.5, H * 0.88, 10, W * 0.5, H * 0.88, W * 0.48);
+    fg.addColorStop(0, 'rgba(255, 79, 168, 0.24)');
+    fg.addColorStop(0.42, 'rgba(69, 233, 255, 0.12)');
+    fg.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = fg;
-    ctx.fillRect(0, fy - H * 0.3, W, H * 0.5);
+    ctx.fillRect(0, fy - H * 0.15, W, H * 0.45);
 
-    // 별
+    // 별 & 반짝이는 입자
     ctx.save();
     for (let i = 0; i < 46; i++) {
       const seed = i * 97.13;
       const x = ((Math.sin(seed) * 0.5 + 0.5) * W);
       const y = ((Math.cos(seed * 1.7) * 0.5 + 0.5) * H * 0.8);
       const tw = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(clock.t * 1.6 + i));
-      ctx.globalAlpha = 0.10 + tw * 0.20;
+      ctx.globalAlpha = 0.10 + tw * 0.22;
       ctx.fillStyle = i % 5 === 0 ? '#ff9bd4' : '#bcd6ff';
       ctx.beginPath();
-      ctx.arc(x, y, (i % 7 === 0 ? 1.7 : 1.0), 0, TAU);
+      ctx.arc(x, y, (i % 7 === 0 ? 1.8 : 1.0), 0, TAU);
       ctx.fill();
     }
     ctx.restore();
+  }
+
+  function drawInterior() {
+    const { hx, hz, top } = BOX;
+
+    // 1) 뒷면 고급 아케이드 쇼케이스 백월 (네온 아치 + 별빛 미러 패널)
+    const pTL = project([-hx, top, -hz]);
+    const pBL = project([-hx, 0.02, -hz]);
+    const bp = ctx.createLinearGradient(0, pTL ? pTL.y : 0, 0, pBL ? pBL.y : H);
+    bp.addColorStop(0, '#271a5e');
+    bp.addColorStop(0.45, '#191142');
+    bp.addColorStop(0.85, '#100a2b');
+    bp.addColorStop(1, '#09061a');
+    poly3([[-hx, 0.02, -hz], [hx, 0.02, -hz], [hx, top, -hz], [-hx, top, -hz]], bp);
+
+    // 뒷벽 다이아몬드 퀼팅/그리드 패턴 & 네온 몰딩
+    for (let i = 1; i <= 5; i++) {
+      const x = -hx + (i / 6) * (hx * 2);
+      line3([x, 0.08, -hz + 0.01], [x, top - 0.08, -hz + 0.01], 'rgba(160, 140, 255, 0.07)', 1.1);
+    }
+    for (let i = 1; i <= 3; i++) {
+      const y = 0.2 + i * 1.02;
+      line3([-hx + 0.12, y, -hz + 0.02], [hx - 0.12, y, -hz + 0.02], 'rgba(170, 140, 255, 0.12)', 1.3);
+    }
+
+    // 뒷벽 중앙 네온 서클 엠블럼
+    const backCenter = project([0, 2.25, -hz + 0.03]);
+    if (backCenter) {
+      ctx.save();
+      const r1 = 1.35 * backCenter.s;
+      const r2 = 1.05 * backCenter.s;
+      const bgGlow = ctx.createRadialGradient(backCenter.x, backCenter.y, r2 * 0.2, backCenter.x, backCenter.y, r1 * 1.25);
+      bgGlow.addColorStop(0, 'rgba(255, 90, 190, 0.18)');
+      bgGlow.addColorStop(0.5, 'rgba(70, 220, 255, 0.10)');
+      bgGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = bgGlow;
+      ctx.beginPath();
+      ctx.arc(backCenter.x, backCenter.y, r1 * 1.25, 0, TAU);
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(255, 110, 200, 0.24)';
+      ctx.lineWidth = Math.max(1.4, backCenter.s * 0.022);
+      ctx.beginPath();
+      ctx.arc(backCenter.x, backCenter.y, r1, 0, TAU);
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(80, 230, 255, 0.22)';
+      ctx.setLineDash([8, 8]);
+      ctx.lineWidth = Math.max(1.2, backCenter.s * 0.016);
+      ctx.beginPath();
+      ctx.arc(backCenter.x, backCenter.y, r2, 0, TAU);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 2) 네 모서리 내부 수직 LED 네온 튜브 (실제 인형뽑기 기계의 화려한 코너 조명)
+    const ledCorners = [
+      [-hx + 0.07, -hz + 0.07, '#45e9ff', 'rgba(69,233,255,0.75)'],
+      [ hx - 0.07, -hz + 0.07, '#45e9ff', 'rgba(69,233,255,0.75)'],
+      [-hx + 0.07,  hz - 0.07, '#ff5fb2', 'rgba(255,79,168,0.75)'],
+      [ hx - 0.07,  hz - 0.07, '#ff5fb2', 'rgba(255,79,168,0.75)']
+    ];
+    for (const [lx, lz, lcol, lglow] of ledCorners) {
+      line3([lx, 0.06, lz], [lx, top - 0.08, lz], lcol, 3.2, lglow, 18);
+      line3([lx, 0.06, lz], [lx, top - 0.08, lz], '#ffffff', 1.1);
+    }
+
+    // 천장 LED 라이트 바
+    for (const [yy, col, glow] of [
+      [3.92, 'rgba(255, 175, 235, 0.85)', 'rgba(255, 79, 168, 0.7)'],
+      [3.76, 'rgba(155, 240, 255, 0.75)', 'rgba(69, 233, 255, 0.65)']
+    ]) {
+      line3([-hx + 0.16, yy, hz - 0.12], [hx - 0.16, yy, hz - 0.12], col, 3.0, glow, 24);
+      line3([-hx + 0.16, yy, -hz + 0.12], [hx - 0.16, yy, -hz + 0.12], col, 2.2, glow, 16);
+    }
+
+    // 3) 천장에서 내려오는 볼류메트릭 스포트라이트 빔
+    const spTop = project([0, top, 0]);
+    const spBot = project([0, 0, 0]);
+    if (spTop && spBot) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const beamG = ctx.createLinearGradient(0, spTop.y, 0, spBot.y);
+      beamG.addColorStop(0, 'rgba(210, 190, 255, 0.11)');
+      beamG.addColorStop(0.6, 'rgba(170, 140, 255, 0.04)');
+      beamG.addColorStop(1, 'rgba(170, 140, 255, 0)');
+      ctx.fillStyle = beamG;
+      ctx.beginPath();
+      ctx.moveTo(spTop.x - 1.9 * spTop.s, spTop.y);
+      ctx.lineTo(spTop.x + 1.9 * spTop.s, spTop.y);
+      ctx.lineTo(spBot.x + 3.1 * spBot.s, spBot.y);
+      ctx.lineTo(spBot.x - 3.1 * spBot.s, spBot.y);
+      ctx.closePath();
+      ctx.fill();
+
+      const g2 = ctx.createRadialGradient(spBot.x, spBot.y - 0.7 * spBot.s, 4, spBot.x, spBot.y, 3.5 * spBot.s);
+      g2.addColorStop(0, 'rgba(210, 185, 255, 0.16)');
+      g2.addColorStop(1, 'rgba(180, 160, 255, 0)');
+      ctx.fillStyle = g2;
+      ctx.beginPath();
+      ctx.ellipse(spBot.x, spBot.y, 3.3 * spBot.s, 1.55 * spBot.s, 0, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 옆면 유리
+    poly3([[-hx, 0, -hz], [-hx, 0, hz], [-hx, top, hz], [-hx, top, -hz]], 'rgba(130, 180, 255, 0.06)');
+    poly3([[hx, 0, -hz], [hx, 0, hz], [hx, top, hz], [hx, top, -hz]], 'rgba(255, 130, 225, 0.055)');
+
+    // 4) 내부 바닥 (체커보드/스테이지 플로어 + 메탈릭 몰딩)
+    const fc = project([0, 0, 0]);
+    if (fc) {
+      const g = ctx.createRadialGradient(fc.x, fc.y, 4, fc.x, fc.y, 4.3 * fc.s);
+      g.addColorStop(0, '#2e2166');
+      g.addColorStop(0.55, '#1a1242');
+      g.addColorStop(1, '#0d0926');
+      poly3([[-hx, 0, -hz], [hx, 0, -hz], [hx, 0, hz], [-hx, 0, hz]], g, 'rgba(150, 220, 255, 0.25)', 1.5);
+    }
+
+    // 5) 입체 아크릴 경품 배출구 (Chute Box — 투명 격벽과 네온 가드레일)
+    const chH = 0.62;
+    const chWall1 = [[CHUTE.x0, 0, CHUTE.z0], [CHUTE.x1, 0, CHUTE.z0], [CHUTE.x1, chH, CHUTE.z0], [CHUTE.x0, chH, CHUTE.z0]];
+    const chWall2 = [[CHUTE.x0, 0, CHUTE.z0], [CHUTE.x0, 0, CHUTE.z1], [CHUTE.x0, chH, CHUTE.z1], [CHUTE.x0, chH, CHUTE.z0]];
+    poly3(chWall1, 'rgba(90, 220, 255, 0.10)', 'rgba(110, 235, 255, 0.55)', 1.6);
+    poly3(chWall2, 'rgba(90, 220, 255, 0.14)', 'rgba(110, 235, 255, 0.65)', 1.6);
+
+    const hole = [[CHUTE.x0, 0.008, CHUTE.z0], [CHUTE.x1, 0.008, CHUTE.z0], [CHUTE.x1, 0.008, CHUTE.z1], [CHUTE.x0, 0.008, CHUTE.z1]];
+    poly3(hole, 'rgba(3, 2, 10, 0.96)', 'rgba(69, 233, 255, 0.85)', 2.4);
+    line3([CHUTE.x0, chH, CHUTE.z0], [CHUTE.x1, chH, CHUTE.z0], '#70f3ff', 2.6, 'rgba(69,233,255,0.8)', 14);
+    line3([CHUTE.x0, chH, CHUTE.z0], [CHUTE.x0, chH, CHUTE.z1], '#70f3ff', 2.6, 'rgba(69,233,255,0.8)', 14);
+
+    const hc = project([CHUTE_C[0], 0.02, CHUTE_C[2]]);
+    if (hc) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(69,233,255,0.75)';
+      ctx.shadowBlur = 26;
+      ctx.beginPath();
+      ctx.ellipse(hc.x, hc.y, 0.44 * hc.s, 0.18 * hc.s, 0, 0, TAU);
+      ctx.fillStyle = 'rgba(69,233,255,0.12)';
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   function drawFloorShadow() {
@@ -719,82 +944,16 @@
     ctx.save();
     ctx.translate(c.x, c.y + 12 * (c.s / 100));
     ctx.scale(1, 0.32);
-    const r = 3.6 * c.s;
+    const r = 3.7 * c.s;
     const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-    g.addColorStop(0, 'rgba(0,0,0,0.55)');
-    g.addColorStop(0.6, 'rgba(0,0,0,0.28)');
+    g.addColorStop(0, 'rgba(0,0,0,0.65)');
+    g.addColorStop(0.6, 'rgba(0,0,0,0.32)');
     g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.arc(0, 0, r, 0, TAU);
     ctx.fill();
     ctx.restore();
-  }
-
-  function drawInterior() {
-    const { hx, hz, top } = BOX;
-
-    // 뒷면 패널
-    const bp = ctx.createLinearGradient(0, 0, 0, H);
-    bp.addColorStop(0, '#1b1445');
-    bp.addColorStop(0.55, '#120c2e');
-    bp.addColorStop(1, '#0a0720');
-    poly3([[-hx, 0.02, -hz], [hx, 0.02, -hz], [hx, top, -hz], [-hx, top, -hz]], bp);
-
-    // 뒷면 네온 라인
-    for (let i = 0; i < 3; i++) {
-      const y = 0.5 + i * 1.35;
-      line3([-hx + 0.1, y, -hz + 0.02], [hx - 0.1, y, -hz + 0.02], 'rgba(140,110,255,0.10)', 1.2);
-    }
-
-    // 유리 상자 안쪽 상단 조명
-    for (const [yy, col, glow] of [[3.86, 'rgba(255,140,220,0.55)', 'rgba(255,79,168,0.5)'], [3.7, 'rgba(120,230,255,0.45)', 'rgba(69,233,255,0.45)']]) {
-      line3([-hx + 0.18, yy, hz - 0.14], [hx - 0.18, yy, hz - 0.14], col, 2.4, glow, 22);
-    }
-
-    // 바닥의 은은한 스포트라이트
-    const sp = project([0, 0, 0]);
-    if (sp) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      const g2 = ctx.createRadialGradient(sp.x, sp.y - 0.9 * sp.s, 4, sp.x, sp.y, 3.4 * sp.s);
-      g2.addColorStop(0, 'rgba(180,160,255,0.10)');
-      g2.addColorStop(1, 'rgba(180,160,255,0)');
-      ctx.fillStyle = g2;
-      ctx.beginPath();
-      ctx.ellipse(sp.x, sp.y, 3.2 * sp.s, 1.5 * sp.s, 0, 0, TAU);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    // 옆면 유리
-    poly3([[-hx, 0, -hz], [-hx, 0, hz], [-hx, top, hz], [-hx, top, -hz]], 'rgba(120,160,255,0.05)');
-    poly3([[hx, 0, -hz], [hx, 0, hz], [hx, top, hz], [hx, top, -hz]], 'rgba(255,120,220,0.045)');
-
-    // 바닥
-    const fc = project([0, 0, 0]);
-    if (fc) {
-      const g = ctx.createRadialGradient(fc.x, fc.y, 4, fc.x, fc.y, 4.3 * fc.s);
-      g.addColorStop(0, '#241a52');
-      g.addColorStop(0.55, '#150f36');
-      g.addColorStop(1, '#0b0822');
-      poly3([[-hx, 0, -hz], [hx, 0, -hz], [hx, 0, hz], [-hx, 0, hz]], g);
-    }
-
-    // 배출구
-    const hole = [[CHUTE.x0, 0.005, CHUTE.z0], [CHUTE.x1, 0.005, CHUTE.z0], [CHUTE.x1, 0.005, CHUTE.z1], [CHUTE.x0, 0.005, CHUTE.z1]];
-    poly3(hole, 'rgba(4,2,14,0.94)', 'rgba(69,233,255,0.55)', 2);
-    const hc = project([CHUTE_C[0], 0.01, CHUTE_C[2]]);
-    if (hc) {
-      ctx.save();
-      ctx.shadowColor = 'rgba(69,233,255,0.65)';
-      ctx.shadowBlur = 26;
-      ctx.beginPath();
-      ctx.ellipse(hc.x, hc.y, 0.42 * hc.s, 0.16 * hc.s, 0, 0, TAU);
-      ctx.fillStyle = 'rgba(69,233,255,0.07)';
-      ctx.fill();
-      ctx.restore();
-    }
   }
 
   function drawCapsules() {
@@ -888,53 +1047,77 @@
       ctx.fill();
     }
 
-    // 케이블 (살짝 흔들림)
+    // 케이블 (코일 스프링 + 강철 와이어 질감)
     const swayX = crane.sway * 0.12;
     const cableTop = [crane.x, railY - 0.02, bz];
-    const cableBot = [crane.x + swayX, crane.hubY + 0.13, crane.z];
-    line3(cableTop, cableBot, 'rgba(220,230,255,0.75)', Math.max(1.2, project(cableTop) ? project(cableTop).s * 0.012 : 2));
+    const cableBot = [crane.x + swayX, crane.hubY + 0.15, crane.z];
+    line3(cableTop, cableBot, 'rgba(90, 105, 145, 0.85)', Math.max(2.2, project(cableTop) ? project(cableTop).s * 0.022 : 3.2));
+    line3(cableTop, cableBot, 'rgba(240, 248, 255, 0.9)', Math.max(1.0, project(cableTop) ? project(cableTop).s * 0.009 : 1.4));
 
-    // 집게 본체
+    // 집게 본체 (실사 크롬 실린더 + 네온 파워 링 + 하단 황동 피벗 캡)
     const hp = project([crane.x + swayX * 0.4, crane.hubY, crane.z]);
     if (hp) {
-      const r = 0.21 * hp.s;
-      const g = ctx.createLinearGradient(hp.x - r, hp.y - r, hp.x + r, hp.y + r);
-      g.addColorStop(0, '#f2f5ff');
-      g.addColorStop(0.45, '#9aa4c9');
-      g.addColorStop(1, '#3d4460');
+      const r = 0.23 * hp.s;
+      const g = ctx.createLinearGradient(hp.x - r, hp.y, hp.x + r, hp.y);
+      g.addColorStop(0, '#4a5578');
+      g.addColorStop(0.22, '#f8fbff');
+      g.addColorStop(0.45, '#99a7cf');
+      g.addColorStop(0.7, '#2d344d');
+      g.addColorStop(0.88, '#cfd8f7');
+      g.addColorStop(1, '#3b4361');
+
+      // 상단 캡
       ctx.beginPath();
-      ctx.ellipse(hp.x, hp.y - r * 0.25, r, r * 0.55, 0, 0, TAU);
+      ctx.ellipse(hp.x, hp.y - r * 0.34, r * 0.72, r * 0.32, 0, 0, TAU);
       ctx.fillStyle = g;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-      ctx.lineWidth = Math.max(1, r * 0.08);
-      ctx.stroke();
 
-      // 몸통
+      // 메인 크롬 하우징 몸통
       ctx.beginPath();
-      ctx.moveTo(hp.x - r * 0.82, hp.y - r * 0.25);
-      ctx.lineTo(hp.x - r * 0.6, hp.y + r * 0.55);
-      ctx.lineTo(hp.x + r * 0.6, hp.y + r * 0.55);
-      ctx.lineTo(hp.x + r * 0.82, hp.y - r * 0.25);
+      ctx.moveTo(hp.x - r * 0.88, hp.y - r * 0.25);
+      ctx.lineTo(hp.x - r * 0.68, hp.y + r * 0.56);
+      ctx.lineTo(hp.x + r * 0.68, hp.y + r * 0.56);
+      ctx.lineTo(hp.x + r * 0.88, hp.y - r * 0.25);
       ctx.closePath();
       ctx.fillStyle = g;
       ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
+      ctx.lineWidth = Math.max(1, r * 0.06);
+      ctx.stroke();
+
+      // 상단 돔 덮개
+      ctx.beginPath();
+      ctx.ellipse(hp.x, hp.y - r * 0.25, r * 0.88, r * 0.42, 0, 0, TAU);
+      ctx.fillStyle = g;
+      ctx.fill();
+
+      // 집게 중앙 LED 파워 코어 링 (작동 중엔 골드/핑크, 평상시 시안)
+      const ledCol = anim ? '#ffd76a' : '#45e9ff';
+      ctx.save();
+      ctx.shadowColor = ledCol;
+      ctx.shadowBlur = 14;
+      ctx.strokeStyle = ledCol;
+      ctx.lineWidth = Math.max(1.8, r * 0.11);
+      ctx.beginPath();
+      ctx.ellipse(hp.x, hp.y + r * 0.12, r * 0.77, r * 0.24, 0, 0, Math.PI);
+      ctx.stroke();
+      ctx.restore();
     }
 
-    // 집게 발 3개 (화면상 뒤쪽부터)
+    // 집게 발 3개 (입체 메탈 관절 + 리벳 볼트 + 고무 그립 패드)
     const open = crane.open;
     const angles = [Math.PI * 0.5, Math.PI * 1.1666, Math.PI * 1.8333];
     const prongs = angles.map((ang) => {
       const spread = 0.12 + 0.46 * open;
-      const bx = crane.x + Math.cos(ang) * 0.08;
-      const bz2 = crane.z + Math.sin(ang) * 0.08;
-      const by = crane.hubY - 0.03;
-      const mx = crane.x + Math.cos(ang) * spread * 0.80;
-      const mz = crane.z + Math.sin(ang) * spread * 0.80;
-      const my = crane.hubY - 0.32;
-      const tx = crane.x + Math.cos(ang) * spread * 0.60;
-      const tz = crane.z + Math.sin(ang) * spread * 0.60;
-      const ty = crane.hubY - 0.72;
+      const bx = crane.x + Math.cos(ang) * 0.10;
+      const bz2 = crane.z + Math.sin(ang) * 0.10;
+      const by = crane.hubY - 0.02;
+      const mx = crane.x + Math.cos(ang) * spread * 0.84;
+      const mz = crane.z + Math.sin(ang) * spread * 0.84;
+      const my = crane.hubY - 0.33;
+      const tx = crane.x + Math.cos(ang) * spread * 0.58;
+      const tz = crane.z + Math.sin(ang) * spread * 0.58;
+      const ty = crane.hubY - 0.74;
       return { ang, b: [bx, by, bz2], m: [mx, my, mz], t: [tx, ty, tz] };
     });
     prongs.sort((a, b) => {
@@ -945,28 +1128,53 @@
     for (const pr of prongs) {
       const pb = project(pr.b), pm = project(pr.m), pt = project(pr.t);
       if (!pb || !pm || !pt) continue;
-      const lw = Math.max(2.5, pb.s * 0.058);
+      const lw = Math.max(3.0, pb.s * 0.064);
+
+      // 바깥쪽 어두운 크롬 외곽선 (두께감)
+      ctx.beginPath();
+      ctx.moveTo(pb.x, pb.y);
+      ctx.quadraticCurveTo(pm.x, pm.y, pt.x, pt.y);
+      ctx.strokeStyle = '#252b40';
+      ctx.lineWidth = lw * 1.28;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // 메인 크롬 바디
       const grad = ctx.createLinearGradient(pb.x, pb.y, pt.x, pt.y);
-      grad.addColorStop(0, '#eef2ff');
-      grad.addColorStop(0.45, '#aab4d8');
-      grad.addColorStop(1, '#5b6382');
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.35, '#c5d1f0');
+      grad.addColorStop(0.7, '#6e7b9e');
+      grad.addColorStop(1, '#dfe8ff');
       ctx.beginPath();
       ctx.moveTo(pb.x, pb.y);
       ctx.quadraticCurveTo(pm.x, pm.y, pt.x, pt.y);
       ctx.strokeStyle = grad;
-      ctx.lineWidth = lw;
+      ctx.lineWidth = lw * 0.92;
       ctx.lineCap = 'round';
-      ctx.shadowColor = 'rgba(160,190,255,0.35)';
+      ctx.shadowColor = 'rgba(160, 200, 255, 0.35)';
       ctx.shadowBlur = 8;
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // 손톱(안쪽 말림)
-      const inX = pt.x + (pt.x - pm.x) * 0.08;
+      // 관절 볼트(리벳) 디테일
+      for (const jt of [pb, pm]) {
+        ctx.beginPath();
+        ctx.arc(jt.x, jt.y, lw * 0.48, 0, TAU);
+        ctx.fillStyle = '#e8efff';
+        ctx.fill();
+        ctx.lineWidth = Math.max(1, lw * 0.16);
+        ctx.strokeStyle = '#39415e';
+        ctx.stroke();
+      }
+
+      // 집게 끝 핑크/레드 실리콘 그립 팁
       ctx.beginPath();
-      ctx.arc(pt.x, pt.y, lw * 0.55, 0, TAU);
-      ctx.fillStyle = '#dfe6ff';
+      ctx.arc(pt.x, pt.y, lw * 0.58, 0, TAU);
+      ctx.fillStyle = '#ff4fa8';
       ctx.fill();
+      ctx.lineWidth = Math.max(1, lw * 0.15);
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
     }
   }
 
@@ -1034,63 +1242,178 @@
 
   function drawFrameEdges() {
     const { hx, hz, top } = BOX;
-    const edges = [
+    // 뒤쪽 기둥
+    for (const [a, b] of [
       [[-hx, top, -hz], [hx, top, -hz]],
-      [[-hx, top, hz], [hx, top, hz]],
       [[-hx, top, -hz], [-hx, top, hz]],
       [[hx, top, -hz], [hx, top, hz]],
       [[-hx, 0, -hz], [-hx, top, -hz]],
-      [[hx, 0, -hz], [hx, top, -hz]],
-      [[-hx, 0, hz], [-hx, top, hz]],
-      [[hx, 0, hz], [hx, top, hz]]
-    ];
-    for (const [a, b] of edges) {
-      line3(a, b, 'rgba(150,215,255,0.30)', 1.8);
+      [[hx, 0, -hz], [hx, top, -hz]]
+    ]) {
+      line3(a, b, 'rgba(140, 195, 255, 0.35)', 2.4);
     }
+    // 앞쪽 양옆 실사 크롬 알루미늄 기둥 (두께감 있는 멀티 레이어 하이라이트)
+    for (const sx of [-hx, hx]) {
+      line3([sx, 0, hz], [sx, top, hz], '#241c4c', 10);
+      line3([sx, 0, hz], [sx, top, hz], '#90b4e8', 5.2);
+      line3([sx, 0, hz], [sx, top, hz], '#ffffff', 1.8);
+    }
+    line3([-hx, top, hz], [hx, top, hz], '#241c4c', 8);
+    line3([-hx, top, hz], [hx, top, hz], '#b8d8ff', 3.4);
   }
 
   function drawBase() {
     const bx = BASE.x, y0 = BASE.y0, z = BASE.z;
-    // 앞면
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#241a4d');
-    g.addColorStop(0.5, '#170f33');
-    g.addColorStop(1, '#0d0821');
-    poly3([[-bx, y0, z], [bx, y0, z], [bx, 0, z], [-bx, 0, z]], g, 'rgba(140,110,220,0.35)', 1.4);
+    // 1) 하단 캐비닛 앞면 (입체 메탈릭 퍼플·네이비 도장)
+    const pTop = project([0, 0, z]);
+    const pBot = project([0, y0, z]);
+    const g = ctx.createLinearGradient(0, pTop ? pTop.y : H * 0.65, 0, pBot ? pBot.y : H);
+    g.addColorStop(0, '#322368');
+    g.addColorStop(0.18, '#23184d');
+    g.addColorStop(0.75, '#130c2e');
+    g.addColorStop(1, '#090518');
+    poly3([[-bx, y0, z], [bx, y0, z], [bx, 0, z], [-bx, 0, z]], g, 'rgba(175, 145, 255, 0.45)', 1.8);
 
     // 옆면
-    poly3([[bx, y0, z], [bx, y0, -z], [bx, 0, -z], [bx, 0, z]], 'rgba(10,7,24,0.9)');
-    poly3([[-bx, y0, z], [-bx, y0, -z], [-bx, 0, -z], [-bx, 0, z]], 'rgba(10,7,24,0.9)');
+    poly3([[bx, y0, z], [bx, y0, -z], [bx, 0, -z], [bx, 0, z]], 'rgba(12, 8, 28, 0.94)', 'rgba(120, 95, 210, 0.25)', 1);
+    poly3([[-bx, y0, z], [-bx, y0, -z], [-bx, 0, -z], [-bx, 0, z]], 'rgba(12, 8, 28, 0.94)', 'rgba(120, 95, 210, 0.25)', 1);
 
-    // 상단 테두리
-    poly3([[-bx, 0, -z], [bx, 0, -z], [bx, 0, z], [-bx, 0, z]], 'rgba(255,255,255,0.05)');
+    // 2) 컨트롤 데크(조작부 선반) 상판 — 앞으로 살짝 튀어나온 아케이드 콘솔 데크
+    const deckZ = z + 0.34;
+    const deckY = -0.08;
+    const dg = ctx.createLinearGradient(0, pTop ? pTop.y - 15 : H * 0.64, 0, pTop ? pTop.y + 22 : H * 0.68);
+    dg.addColorStop(0, '#3f2e7e');
+    dg.addColorStop(0.5, '#291c58');
+    dg.addColorStop(1, '#181038');
+    poly3([[-bx, 0, z], [bx, 0, z], [bx * 0.96, deckY, deckZ], [-bx * 0.96, deckY, deckZ]], dg, 'rgba(255, 140, 225, 0.6)', 1.6);
 
-    // 네온 라인
-    line3([-bx + 0.15, -0.12, z + 0.01], [bx - 0.15, -0.12, z + 0.01], 'rgba(255,79,168,0.9)', 3, 'rgba(255,79,168,0.9)', 20);
-    line3([-bx + 0.15, -0.86, z + 0.01], [bx - 0.15, -0.86, z + 0.01], 'rgba(69,233,255,0.35)', 1.4);
+    // 컨트롤 데크 앞면 네온 범퍼 몰딩
+    poly3([[-bx * 0.96, deckY - 0.11, deckZ], [bx * 0.96, deckY - 0.11, deckZ], [bx * 0.96, deckY, deckZ], [-bx * 0.96, deckY, deckZ]], '#160e36', 'rgba(69, 233, 255, 0.65)', 1.5);
+    line3([-bx * 0.93, deckY - 0.05, deckZ + 0.01], [bx * 0.93, deckY - 0.05, deckZ + 0.01], '#ff4fa8', 3.4, 'rgba(255,79,168,0.95)', 22);
 
-    // 경품 배출 도어
-    const dx0 = 1.55, dx1 = 2.6, dy0 = -0.78, dy1 = -0.26;
-    poly3([[dx0, dy0, z + 0.01], [dx1, dy0, z + 0.01], [dx1, dy1, z + 0.01], [dx0, dy1, z + 0.01]], 'rgba(6,4,18,0.95)', 'rgba(69,233,255,0.5)', 1.6);
-    const dp = project([(dx0 + dx1) / 2, (dy0 + dy1) / 2, z + 0.02]);
-    if (dp) {
-      ctx.fillStyle = 'rgba(69,233,255,0.22)';
-      ctx.font = `700 ${Math.max(8, 0.1 * dp.s)}px system-ui, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('PRIZE', dp.x, dp.y);
+    // 3) 데크 위 실사 3D 아케이드 볼탑 조이스틱 & LED 푸시버튼
+    const joyBase = project([-0.85, -0.02, z + 0.18]);
+    const joyTop = project([-0.85 + (crane.vx * 0.035), 0.22, z + 0.18 + (crane.vz * 0.035)]);
+    if (joyBase && joyTop) {
+      // 조이스틱 와셔(검은 원판)
+      ctx.beginPath();
+      ctx.ellipse(joyBase.x, joyBase.y, 0.17 * joyBase.s, 0.075 * joyBase.s, 0, 0, TAU);
+      ctx.fillStyle = '#0d0a1c';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(140, 220, 255, 0.5)';
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+
+      // 크롬 샤프트 막대
+      ctx.beginPath();
+      ctx.moveTo(joyBase.x, joyBase.y);
+      ctx.lineTo(joyTop.x, joyTop.y);
+      ctx.strokeStyle = '#d8e4ff';
+      ctx.lineWidth = Math.max(2.5, joyBase.s * 0.042);
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // 붉은 유광 볼탑(구슬 손잡이)
+      const br = 0.125 * joyTop.s;
+      const bg = ctx.createRadialGradient(joyTop.x - br * 0.35, joyTop.y - br * 0.35, 1, joyTop.x, joyTop.y, br);
+      bg.addColorStop(0, '#ffffff');
+      bg.addColorStop(0.25, '#ff7eb9');
+      bg.addColorStop(0.65, '#ff1f7a');
+      bg.addColorStop(1, '#7a0536');
+      ctx.fillStyle = bg;
+      ctx.shadowColor = 'rgba(255, 50, 140, 0.8)';
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.arc(joyTop.x, joyTop.y, br, 0, TAU);
+      ctx.fill();
+      ctx.shadowBlur = 0;
     }
 
-    // 동전 투입구 / 버튼
-    const cp = project([-2.35, -0.5, z + 0.02]);
+    // 데크 위 발광 아케이드 버튼 2개 (시안 & 골드)
+    for (const [bxPos, bCol, bGlow] of [[0.45, '#45e9ff', 'rgba(69,233,255,0.85)'], [0.95, '#ffd76a', 'rgba(255,215,106,0.85)']]) {
+      const bp = project([bxPos, -0.01, z + 0.18]);
+      if (bp) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(bp.x, bp.y + 2, 0.15 * bp.s, 0.072 * bp.s, 0, 0, TAU);
+        ctx.fillStyle = '#140f2d';
+        ctx.fill();
+
+        ctx.shadowColor = bGlow;
+        ctx.shadowBlur = 14;
+        ctx.beginPath();
+        ctx.ellipse(bp.x, bp.y - 1.5, 0.115 * bp.s, 0.054 * bp.s, 0, 0, TAU);
+        ctx.fillStyle = bCol;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // 4) 하단 네온 몰딩 & 스피커 그릴 & 코인 메커니즘
+    line3([-bx + 0.15, -0.88, z + 0.01], [bx - 0.15, -0.88, z + 0.01], 'rgba(69,233,255,0.55)', 2.2, 'rgba(69,233,255,0.6)', 14);
+
+    // 왼쪽 코인 도어 (금속 패널 + 발광 코인 투입구 + 디지털 크레딧 창)
+    poly3([[-2.72, -0.78, z + 0.01], [-1.58, -0.78, z + 0.01], [-1.58, -0.24, z + 0.01], [-2.72, -0.24, z + 0.01]], 'rgba(14, 10, 32, 0.95)', 'rgba(160, 145, 230, 0.45)', 1.5);
+    const cp = project([-2.15, -0.51, z + 0.02]);
     if (cp) {
-      ctx.beginPath();
-      ctx.ellipse(cp.x, cp.y, 0.14 * cp.s, 0.14 * cp.s * 0.85, 0, 0, TAU);
-      ctx.fillStyle = 'rgba(255,215,106,0.16)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255,215,106,0.7)';
+      const s = cp.s;
+      // 코인 슬롯
+      ctx.fillStyle = 'rgba(255, 215, 106, 0.18)';
+      ctx.strokeStyle = '#ffd76a';
       ctx.lineWidth = 1.6;
+      roundRect(cp.x - 0.36 * s, cp.y - 0.15 * s, 0.30 * s, 0.30 * s, 6);
+      ctx.fill();
       ctx.stroke();
+
+      // 동전 투입 구멍
+      ctx.fillStyle = '#ff4fa8';
+      ctx.shadowColor = '#ff4fa8';
+      ctx.shadowBlur = 8;
+      ctx.fillRect(cp.x - 0.22 * s, cp.y - 0.07 * s, 0.025 * s, 0.14 * s);
+      ctx.shadowBlur = 0;
+
+      // FREE PLAY LED 배지
+      ctx.fillStyle = '#071a1e';
+      ctx.strokeStyle = 'rgba(69, 233, 255, 0.6)';
+      roundRect(cp.x + 0.02 * s, cp.y - 0.12 * s, 0.38 * s, 0.24 * s, 5);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#4dffa8';
+      ctx.font = `900 ${Math.max(7, 0.068 * s)}px ui-monospace, Consolas, monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('FREE', cp.x + 0.21 * s, cp.y - 0.03 * s);
+      ctx.fillText('PLAY', cp.x + 0.21 * s, cp.y + 0.055 * s);
+    }
+
+    // 중앙 스테레오 스피커 그릴
+    const spk = project([-0.15, -0.52, z + 0.02]);
+    if (spk) {
+      ctx.fillStyle = 'rgba(200, 190, 255, 0.18)';
+      for (let r = -2; r <= 2; r++) {
+        for (let c = -6; c <= 6; c++) {
+          ctx.beginPath();
+          ctx.arc(spk.x + c * 0.075 * spk.s, spk.y + r * 0.055 * spk.s, Math.max(1, 0.014 * spk.s), 0, TAU);
+          ctx.fill();
+        }
+      }
+    }
+
+    // 5) 오른쪽 경품 배출구 도어 (입체 플랩 & 내부 네온 글로우)
+    const dx0 = 1.52, dx1 = 2.68, dy0 = -0.80, dy1 = -0.22;
+    poly3([[dx0, dy0, z + 0.01], [dx1, dy0, z + 0.01], [dx1, dy1, z + 0.01], [dx0, dy1, z + 0.01]], 'rgba(4, 3, 14, 0.97)', 'rgba(69, 233, 255, 0.72)', 2.0);
+    poly3([[dx0 + 0.07, dy0 + 0.06, z + 0.015], [dx1 - 0.07, dy0 + 0.06, z + 0.015], [dx1 - 0.07, dy1 - 0.06, z + 0.015], [dx0 + 0.07, dy1 - 0.06, z + 0.015]], 'rgba(20, 45, 72, 0.35)', 'rgba(150, 240, 255, 0.28)', 1.0);
+    const dp = project([(dx0 + dx1) / 2, (dy0 + dy1) / 2, z + 0.02]);
+    if (dp) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(69, 233, 255, 0.8)';
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = 'rgba(130, 245, 255, 0.75)';
+      ctx.font = `900 ${Math.max(8, 0.095 * dp.s)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('✦ PRIZE OUT ✦', dp.x, dp.y);
+      ctx.restore();
     }
   }
 
