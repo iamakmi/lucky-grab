@@ -1,0 +1,55 @@
+{
+  "title": "LUCKY GRAB",
+  "subtitle": "QR로 조작하는 럭키드로우",
+  "grabDurationMs": 6000,
+  "prizes": [
+    {
+      "id": "americano",
+      "name": "스타벅스 아메리카노",
+      "color": "#34d399",
+      "emoji": "☕",
+      "weight": 30,
+      "quantity": 8
+    },
+    {
+      "id": "cu3000",
+      "name": "CU 모바일 상품권 3천원",
+      "color": "#a78bfa",
+      "emoji": "🎟️",
+      "weight": 25,
+      "quantity": 5
+    },
+    {
+      "id": "baskin",
+      "name": "배스킨라빈스 싱글레귤러",
+      "color": "#f472b6",
+      "emoji": "🍦",
+      "weight": 20,
+      "quantity": 4
+    },
+    {
+      "id": "chicken",
+      "name": "치킨 기프티콘",
+      "color": "#f59e0b",
+      "emoji": "🍗",
+      "weight": 15,
+      "quantity": 2
+    },
+    {
+      "id": "giftcard",
+      "name": "문화상품권 1만원",
+      "color": "#fbbf24",
+      "emoji": "💳",
+      "weight": 7,
+      "quantity": 2
+    },
+    {
+      "id": "airpods",
+      "name": "에어팟 프로",
+      "color": "#38bdf8",
+      "emoji": "🎧",
+      "weight": 3,
+      "quantity": 1
+    }
+  ]
+}

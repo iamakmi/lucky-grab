@@ -52,8 +52,20 @@
   const elKbHint = $('kbHint');
 
   /* ---------------------------------------------------------------- state */
+  const DEFAULT_PRIZES = [
+    { id: 'americano', name: '스타벅스 아메리카노', color: '#34d399', emoji: '☕', weight: 30, quantity: 8, remaining: 8 },
+    { id: 'cu3000', name: 'CU 모바일 상품권 3천원', color: '#a78bfa', emoji: '🎟️', weight: 25, quantity: 5, remaining: 5 },
+    { id: 'baskin', name: '배스킨라빈스 싱글레귤러', color: '#f472b6', emoji: '🍦', weight: 20, quantity: 4, remaining: 4 },
+    { id: 'chicken', name: '치킨 기프티콘', color: '#f59e0b', emoji: '🍗', weight: 15, quantity: 2, remaining: 2 },
+    { id: 'giftcard', name: '문화상품권 1만원', color: '#fbbf24', emoji: '💳', weight: 7, quantity: 2, remaining: 2 },
+    { id: 'airpods', name: '에어팟 프로', color: '#38bdf8', emoji: '🎧', weight: 3, quantity: 1, remaining: 1 }
+  ];
+
   const S = {
     connected: false,
+    standalone: false,
+    relayConnected: false,
+    room: '',
     controllerCount: 0,
     phase: 'idle',
     activeLabel: null,
@@ -61,7 +73,8 @@
     prizes: [],
     config: null,
     lastPrize: null,
-    qrExpanded: true
+    qrExpanded: true,
+    padVisible: true
   };
 
   /* --------------------------------------------------------------- canvas */
@@ -357,6 +370,7 @@
   };
   const input = { x: 0, z: 0 };   // 서버에서 온 컨트롤러 입력
   const kb = { x: 0, z: 0 };      // 키보드 입력
+  const tp = { x: 0, z: 0 };      // 화면 터치패드 입력
 
   let anim = null;                // 뽑기 애니메이션 상태
   let falling = null;             // 떨어지는 캡슐
@@ -415,9 +429,8 @@
   function updateCrane(dt) {
     if (anim) { updateAnim(dt); return; }
 
-    const useController = S.controllerCount > 0;
-    const ix = useController ? input.x : kb.x;
-    const iz = useController ? input.z : kb.z;
+    const ix = clamp(input.x + kb.x + tp.x, -1, 1);
+    const iz = clamp(input.z + kb.z + tp.z, -1, 1);
     const speed = 2.55;
 
     const tvx = ix * speed;
@@ -503,7 +516,8 @@
       // 마무리
       if (!a.droppedSent) {
         a.droppedSent = true;
-        net.send({ type: 'grab_done' });
+        if (S.connected) net.send({ type: 'grab_done' });
+        else finishStandaloneGrab(a.prize, a.playerLabel);
         celebrate(a.prize, a.playerLabel);
       }
       anim = null;
@@ -518,7 +532,8 @@
     if (falling) updateFalling(dt);
     if (!a.droppedSent && a.dropped && t > T.releaseEnd - 0.02) {
       a.droppedSent = true;
-      net.send({ type: 'grab_done' });
+      if (S.connected) net.send({ type: 'grab_done' });
+      else finishStandaloneGrab(a.prize, a.playerLabel);
       celebrate(a.prize, a.playerLabel);
     }
   }
@@ -1354,7 +1369,7 @@
 
   /* ------------------------------------------------------------------- UI */
   function updateUI() {
-    const online = S.connected;
+    const online = S.connected || S.standalone;
     const cls = ['status'];
     let text = '';
 
@@ -1363,36 +1378,44 @@
     } else if (S.phase === 'result' && S.lastPrize) {
       text = '🎉 ' + S.lastPrize.name + ' 당첨!';
       cls.push('win');
-    } else if (S.controllerCount === 0) {
-      text = '컨트롤러 연결 대기 중';
     } else if (S.phase === 'grabbing') {
       text = (S.activeLabel || '플레이어') + ' 뽑기 진행 중…';
       cls.push('busy');
+    } else if (S.controllerCount === 0) {
+      text = S.standalone ? '터치 패드 또는 QR 스캔으로 조작 가능' : '터치 패드 · 컨트롤러 대기 중';
+      cls.push('online');
     } else {
       text = (S.activeLabel || '플레이어') + ' 조작 중';
       cls.push('online');
     }
-    if (online && S.controllerCount === 0) cls.push('busy');
 
     elStatus.className = cls.join(' ');
     elStatusText.textContent = text;
     elQueue.textContent = S.controllerCount > 1 ? `대기 ${S.controllerCount - 1}명` : '';
 
-    const expanded = S.controllerCount === 0;
-    if (expanded !== S.qrExpanded) {
-      S.qrExpanded = expanded;
-      elQrPanel.classList.toggle('compact', !expanded);
-      layout.target = computeTargetRect();
-    }
-    elKbHint.classList.toggle('hide', S.controllerCount > 0);
+    const tpGrabBtn = $('tpGrab');
+    if (tpGrabBtn) tpGrabBtn.disabled = (S.phase === 'grabbing' || anim !== null);
+
+    elKbHint.classList.toggle('hide', S.controllerCount > 0 || S.padVisible);
   }
 
   function setupQR(cfg) {
-    if (!cfg) return;
-    const lan = cfg.urls && cfg.urls.lan;
-    const local = cfg.urls && cfg.urls.local;
-    const url = lan || local || (location.origin + '/controller');
+    let url = '';
+    if (cfg && cfg.urls && (cfg.urls.lan || cfg.urls.local)) {
+      url = cfg.urls.lan || cfg.urls.local;
+    } else {
+      const base = location.origin + location.pathname.replace(/[^/]*$/, '');
+      url = base + 'controller.html' + (S.room ? '?room=' + S.room : '');
+    }
     elQrUrl.textContent = url.replace(/^https?:\/\//, '');
+    const roomWrap = $('qrRoomWrap');
+    const roomCode = $('roomCode');
+    if (roomWrap && roomCode && S.room && !S.connected) {
+      roomWrap.hidden = false;
+      roomCode.textContent = S.room;
+    } else if (roomWrap && S.connected) {
+      roomWrap.hidden = true;
+    }
     try {
       const qr = qrcode(0, 'M');
       qr.addData(url);
@@ -1460,12 +1483,280 @@
   });
   window.addEventListener('blur', () => { pressed.clear(); syncKeyboard(); });
 
-  function tryLocalGrab() {
+  function tryLocalGrab(label) {
     Sound.init();
-    if (!S.connected) return;
-    if (S.controllerCount > 0) return;      // 컨트롤러가 있으면 그쪽에서
-    if (S.phase !== 'ready' && S.phase !== 'idle') return;
-    net.send({ type: 'grab' });
+    if (anim || S.phase === 'grabbing') return;
+    if (S.connected) {
+      net.send({ type: 'grab' });
+      return;
+    }
+    startStandaloneGrab(label || '태블릿 터치');
+  }
+
+  /* ---------------------------------------------- 웹(정적 호스팅) 및 터치 모드 */
+  function saveStandaloneStock() {
+    try {
+      const stock = {};
+      for (const p of S.prizes) stock[p.id] = p.remaining;
+      localStorage.setItem('luckygrab:stock', JSON.stringify(stock));
+    } catch (e) { /* noop */ }
+  }
+
+  function loadStandalonePrizes(list) {
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem('luckygrab:stock') || '{}') || {}; } catch (e) { saved = {}; }
+    return list.map((p) => {
+      const qty = Math.max(0, Number(p.quantity) || 1);
+      const rem = typeof saved[p.id] === 'number' ? Math.max(0, Math.min(qty, saved[p.id])) : (typeof p.remaining === 'number' ? p.remaining : qty);
+      return {
+        id: p.id,
+        name: p.name,
+        color: p.color,
+        emoji: p.emoji || '🎁',
+        weight: Math.max(1, Number(p.weight) || 10),
+        quantity: qty,
+        remaining: rem
+      };
+    });
+  }
+
+  function pickStandalonePrize() {
+    const avail = S.prizes.filter((p) => p.remaining > 0 && (p.weight || 1) > 0);
+    if (!avail.length) return null;
+    const total = avail.reduce((s, p) => s + (p.weight || 1), 0);
+    let r = Math.random() * total;
+    for (const p of avail) {
+      r -= (p.weight || 1);
+      if (r <= 0) return p;
+    }
+    return avail[avail.length - 1];
+  }
+
+  function startStandaloneGrab(playerLabel) {
+    if (anim || S.phase === 'grabbing') return;
+    const prize = pickStandalonePrize();
+    if (!prize) {
+      flashNotice('모든 경품이 소진되었습니다! 상단 🔄 버튼으로 재고를 채워 주세요.');
+      return;
+    }
+    S.phase = 'grabbing';
+    S.activeLabel = playerLabel || '플레이어';
+    input.x = 0; input.z = 0; tp.x = 0; tp.z = 0;
+    updateUI();
+    publishRelay({ k: 'busy', label: S.activeLabel });
+    startGrabAnim(prize, S.activeLabel);
+  }
+
+  function finishStandaloneGrab(prize, playerLabel) {
+    const target = S.prizes.find((p) => p.id === prize.id);
+    if (target && target.remaining > 0) target.remaining -= 1;
+    saveStandaloneStock();
+    S.phase = 'result';
+    S.lastPrize = prize;
+    renderPrizes();
+    updateUI();
+    publishRelay({ k: 'win', prize: { id: prize.id, name: prize.name, emoji: prize.emoji, color: prize.color }, label: playerLabel });
+    setTimeout(() => {
+      S.phase = 'ready';
+      updateUI();
+      publishRelay({ k: 'ready' });
+    }, 3400);
+  }
+
+  function resetPrizeStock() {
+    if (!window.confirm('경품 재고를 처음 수량으로 모두 채울까요?')) return;
+    if (S.connected) {
+      net.send({ type: 'reset_stock', resetStock: true });
+      buildPile();
+      flashNotice('🎁 경품 재고를 모두 채웠습니다!');
+      return;
+    }
+    try { localStorage.removeItem('luckygrab:stock'); } catch (e) {}
+    for (const p of S.prizes) {
+      p.remaining = p.quantity || 5;
+    }
+    saveStandaloneStock();
+    buildPile();
+    renderPrizes();
+    flashNotice('🎁 경품 재고를 모두 채웠습니다!');
+  }
+
+  /* ---- ntfy.sh 공개 중계 (GitHub Pages 등 정적 웹에서 스마트폰 QR 연동) ---- */
+  function ensureRoomCode() {
+    const fromUrl = (location.search.match(/[?&]room=([A-Za-z0-9]+)/) || [])[1];
+    let saved = '';
+    try { saved = localStorage.getItem('luckygrab:room') || ''; } catch (e) {}
+    let room = (fromUrl || saved || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (room.length < 4) {
+      const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+      room = '';
+      for (let i = 0; i < 6; i++) room += chars[(Math.random() * chars.length) | 0];
+    }
+    try { localStorage.setItem('luckygrab:room', room); } catch (e) {}
+    S.room = room;
+    return room;
+  }
+
+  function relayTopic() {
+    return 'luckygrab-' + (S.room || 'default').toLowerCase();
+  }
+
+  function publishRelay(obj) {
+    if (S.connected || !S.room) return;
+    fetch('https://ntfy.sh/' + relayTopic(), {
+      method: 'POST',
+      body: JSON.stringify(obj),
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
+    }).catch(() => {});
+  }
+
+  let relayInputExpire = null;
+  function connectRelay() {
+    if (S.connected) return;
+    ensureRoomCode();
+    setupQR(null);
+    let ws;
+    try {
+      ws = new WebSocket('wss://ntfy.sh/' + relayTopic() + '/ws');
+    } catch (e) {
+      return;
+    }
+    ws.onopen = () => {
+      S.relayConnected = true;
+    };
+    ws.onmessage = (ev) => {
+      if (S.connected) return;
+      let wrapper, msg;
+      try {
+        wrapper = JSON.parse(ev.data);
+        if (!wrapper || wrapper.event !== 'message' || !wrapper.message) return;
+        msg = JSON.parse(wrapper.message);
+      } catch (e) { return; }
+      if (!msg || typeof msg !== 'object') return;
+      if (msg.k === 'hello') {
+        S.controllerCount = Math.max(1, S.controllerCount);
+        S.activeLabel = msg.label || '스마트폰';
+        updateUI();
+        publishRelay({ k: 'ready' });
+      } else if (msg.k === 'in') {
+        input.x = clamp(Number(msg.x) || 0, -1, 1);
+        input.z = clamp(Number(msg.z) || 0, -1, 1);
+        clearTimeout(relayInputExpire);
+        if (input.x !== 0 || input.z !== 0) {
+          relayInputExpire = setTimeout(() => { input.x = 0; input.z = 0; }, 900);
+        }
+      } else if (msg.k === 'grab') {
+        startStandaloneGrab(msg.label || '스마트폰');
+      }
+    };
+    ws.onclose = () => {
+      S.relayConnected = false;
+      if (!S.connected) setTimeout(connectRelay, 2500);
+    };
+  }
+
+  function enableStandaloneMode() {
+    if (S.connected || S.standalone) return;
+    S.standalone = true;
+    S.phase = 'ready';
+    ensureRoomCode();
+    fetch('prizes.json').then((r) => r.json()).then((raw) => {
+      if (raw && raw.subtitle) elBrandSub.textContent = raw.subtitle;
+      S.prizes = loadStandalonePrizes(Array.isArray(raw.prizes) ? raw.prizes : DEFAULT_PRIZES);
+      buildPile();
+      renderPrizes();
+      setupQR(null);
+      updateUI();
+    }).catch(() => {
+      S.prizes = loadStandalonePrizes(DEFAULT_PRIZES);
+      buildPile();
+      renderPrizes();
+      setupQR(null);
+      updateUI();
+    });
+    connectRelay();
+  }
+
+  /* ---- 화면 터치 패드 이벤트 ---- */
+  function setupTouchPad() {
+    const pad = $('touchPad');
+    const dpad = $('tpDpad');
+    const grabBtn = $('tpGrab');
+    if (!pad || !dpad || !grabBtn) return;
+
+    const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+    const active = new Set();
+
+    function syncTp() {
+      let x = 0, z = 0;
+      for (const d of active) {
+        const v = DIRS[d];
+        if (v) { x += v[0]; z += v[1]; }
+      }
+      tp.x = clamp(x, -1, 1);
+      tp.z = clamp(z, -1, 1);
+    }
+
+    for (const btn of dpad.querySelectorAll('.tp-btn')) {
+      const dir = btn.dataset.dir;
+      btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        Sound.init();
+        try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+        active.add(dir);
+        btn.classList.add('active');
+        if (navigator.vibrate) { try { navigator.vibrate(8); } catch (_) {} }
+        syncTp();
+      });
+      const release = () => {
+        if (!active.has(dir)) return;
+        active.delete(dir);
+        btn.classList.remove('active');
+        syncTp();
+      };
+      btn.addEventListener('pointerup', release);
+      btn.addEventListener('pointercancel', release);
+      btn.addEventListener('lostpointercapture', release);
+      btn.addEventListener('pointerleave', (e) => { if (e.buttons === 0) release(); });
+      btn.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+
+    grabBtn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      if (grabBtn.disabled) return;
+      grabBtn.classList.add('pressed');
+      if (navigator.vibrate) { try { navigator.vibrate(18); } catch (_) {} }
+      active.clear();
+      for (const b of dpad.querySelectorAll('.tp-btn')) b.classList.remove('active');
+      syncTp();
+      tryLocalGrab('태블릿 터치');
+    });
+    const unpress = () => grabBtn.classList.remove('pressed');
+    grabBtn.addEventListener('pointerup', unpress);
+    grabBtn.addEventListener('pointercancel', unpress);
+    grabBtn.addEventListener('pointerleave', unpress);
+    grabBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    const padToggle = $('padToggleBtn');
+    if (padToggle) {
+      padToggle.addEventListener('click', () => {
+        S.padVisible = !S.padVisible;
+        pad.classList.toggle('hidden', !S.padVisible);
+        updateUI();
+      });
+    }
+    const qrToggle = $('qrToggleBtn');
+    if (qrToggle) {
+      qrToggle.addEventListener('click', () => {
+        S.qrExpanded = !S.qrExpanded;
+        elQrPanel.classList.toggle('compact', !S.qrExpanded);
+        layout.target = computeTargetRect();
+      });
+    }
+    const resetBtn = $('resetStockBtn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', resetPrizeStock);
+    }
   }
 
   /* --------------------------------------------------------------- sound */
@@ -1539,6 +1830,7 @@
   };
 
   window.addEventListener('resize', resize);
+  setupTouchPad();
   resize();
   buildPile();
   renderPrizes();
@@ -1546,10 +1838,12 @@
   net.connect();
   requestAnimationFrame(frame);
 
-  // 서버가 아직 목록을 안 보냈을 때를 위한 기본 표시
-  setTimeout(() => { if (!S.prizes.length) renderPrizes(); }, 500);
+  // 로컬 Node 서버가 없는 환경(GitHub Pages 태블릿 접속 등)에서는 1.2초 후 자동으로 웹 단독+QR중계 모드로 전환
+  setTimeout(() => {
+    if (!S.connected) enableStandaloneMode();
+  }, 1200);
   // 화면 갱신 (연결 상태 주기 점검)
   setInterval(() => {
-    if (!S.connected) updateUI();
+    if (!S.connected && !S.standalone) updateUI();
   }, 2000);
 })();

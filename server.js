@@ -414,16 +414,24 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    if (msg.type === 'grab') {
-      if (game.phase !== 'ready' && game.phase !== 'idle') return;
-      if (client.role === 'controller') {
-        if (game.activeId !== id) return;
-        startGrab(id);
-      } else if (client.role === 'display' && !game.activeId) {
-        startGrab('local');
+      if (client.role === 'display' && msg.resetStock === true) {
+        for (const p of config.prizes) remaining.set(p.id, p.quantity);
+        saveState();
+        broadcastPrizes();
+        broadcastState();
+        return;
       }
-      return;
-    }
+
+      if (msg.type === 'grab') {
+        if (game.phase !== 'ready' && game.phase !== 'idle') return;
+        if (client.role === 'controller') {
+          if (game.activeId !== id) return;
+          startGrab(id);
+        } else if (client.role === 'display') {
+          startGrab('local');
+        }
+        return;
+      }
 
     if (msg.type === 'grab_done') {
       if (client.role === 'display') resolveGrab('display');
@@ -503,6 +511,10 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === '/favicon.ico') {
     sendFile(res, path.join(PUBLIC_DIR, 'favicon.svg'));
+    return;
+  }
+  if (pathname === '/prizes.json') {
+    sendFile(res, path.join(ROOT, 'prizes.json'));
     return;
   }
 

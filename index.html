@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#07060f" />
+<title>LUCKY GRAB · 럭키드로우</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="css/display.css" />
+</head>
+<body>
+<div id="stage">
+  <canvas id="scene"></canvas>
+  <canvas id="fx"></canvas>
+
+  <div class="vignette"></div>
+
+  <div class="hud">
+    <div class="brand">
+      <div class="brand-kicker">QR LUCKY DRAW</div>
+      <div class="brand-sub" id="brandSub">스마트폰·태블릿으로 조작하는 럭키드로우</div>
+    </div>
+
+    <div class="status" id="statusChip">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">준비 중…</span>
+      <span class="queue" id="queueText"></span>
+    </div>
+
+    <aside class="qr-panel" id="qrPanel">
+      <div class="qr-head">📱 스마트폰으로 조작하기</div>
+      <div class="qr-box"><div id="qrCode"></div></div>
+      <div class="qr-url" id="qrUrl">주소를 불러오는 중…</div>
+      <div class="qr-room" id="qrRoomWrap" hidden>방 코드 <b id="roomCode">──────</b></div>
+      <div class="qr-hint" id="qrHint">
+        휴대폰 <b>카메라</b>로 QR을 비추거나<br />
+        태블릿 화면의 <b>터치 패드</b>로 바로 뽑아보세요!
+      </div>
+    </aside>
+
+    <!-- 태블릿·터치스크린 직접 조작 패드 -->
+    <div class="touch-pad" id="touchPad" aria-label="화면 터치 컨트롤러">
+      <div class="tp-dpad" id="tpDpad">
+        <button class="tp-btn up" data-dir="up" type="button" aria-label="위로"><svg viewBox="0 0 24 24"><path d="M12 5l7 8H5z"/></svg></button>
+        <button class="tp-btn left" data-dir="left" type="button" aria-label="왼쪽"><svg viewBox="0 0 24 24"><path d="M5 12l8-7v14z"/></svg></button>
+        <div class="tp-hub">조작</div>
+        <button class="tp-btn right" data-dir="right" type="button" aria-label="오른쪽"><svg viewBox="0 0 24 24"><path d="M19 12l-8 7V5z"/></svg></button>
+        <button class="tp-btn down" data-dir="down" type="button" aria-label="아래로"><svg viewBox="0 0 24 24"><path d="M12 19l-7-8h14z"/></svg></button>
+      </div>
+      <button class="tp-grab" id="tpGrab" type="button" aria-label="뽑기">
+        <span class="tp-grab-main">GRAB!</span>
+        <span class="tp-grab-sub">터치로 뽑기</span>
+      </button>
+    </div>
+
+    <div class="prize-bar">
+      <div class="prize-label">🎁 남은 경품</div>
+      <div class="prize-list" id="prizeList"></div>
+    </div>
+
+    <div class="keyboard-hint" id="kbHint">
+      <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> 이동 <span>·</span> <kbd>SPACE</kbd> 뽑기
+    </div>
+
+    <div class="corner-tools">
+      <button id="padToggleBtn" class="icon-btn" type="button" title="터치 조작패드 켜기/끄기" aria-label="터치 조작패드 켜기/끄기">🎮</button>
+      <button id="qrToggleBtn" class="icon-btn" type="button" title="QR 코드 작게/크게" aria-label="QR 코드 작게/크게">📱</button>
+      <button id="resetStockBtn" class="icon-btn" type="button" title="경품 재고 초기화" aria-label="경품 재고 초기화">🔄</button>
+      <button id="soundBtn" class="icon-btn" type="button" title="소리 켜기/끄기" aria-label="소리 켜기/끄기">🔈</button>
+      <button id="fullBtn" class="icon-btn" type="button" title="전체 화면" aria-label="전체 화면">⛶</button>
+    </div>
+  </div>
+
+  <div class="banner" id="banner">
+    <div class="banner-glow" id="bannerGlow"></div>
+    <div class="banner-card">
+      <div class="banner-kicker" id="bannerKicker">당첨!</div>
+      <div class="banner-prize" id="bannerPrize">경품 이름</div>
+      <div class="banner-player" id="bannerPlayer"></div>
+    </div>
+  </div>
+</div>
+
+<script src="vendor/qrcode.js"></script>
+<script src="js/display.js"></script>
+</body>
+</html>

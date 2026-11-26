@@ -408,3 +408,164 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
   .keyboard-hint { display: none; }
   .brand-sub { display: none; }
 }
+
+/* ----------------------------------------------------- 방 코드 · 터치 패드 */
+.qr-room {
+  margin-top: 0.45em;
+  text-align: center;
+  font-size: clamp(10px, 0.85vw, 13.5px);
+  font-weight: 700;
+  color: rgba(210, 200, 245, 0.8);
+  letter-spacing: 0.05em;
+}
+.qr-room b {
+  color: var(--gold);
+  letter-spacing: 0.14em;
+  font-weight: 900;
+}
+.qr-panel.compact .qr-room { display: none; }
+.qr-panel.hidden { opacity: 0; pointer-events: none; transform: translateY(20px) scale(0.92); }
+
+.touch-pad {
+  position: absolute;
+  left: clamp(14px, 2.2vw, 36px);
+  bottom: clamp(70px, 10.5vh, 120px);
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 2vw, 26px);
+  padding: clamp(10px, 1.2vw, 16px) clamp(14px, 1.6vw, 22px);
+  border-radius: 28px;
+  background: linear-gradient(155deg, rgba(26, 20, 56, 0.82), rgba(11, 8, 26, 0.88));
+  border: 1px solid rgba(130, 115, 255, 0.30);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  pointer-events: auto;
+  z-index: 7;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.touch-pad.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(18px) scale(0.95);
+}
+
+.tp-dpad {
+  width: clamp(124px, 14.5vmin, 168px);
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 5px;
+  touch-action: none;
+}
+.tp-btn {
+  border: none;
+  border-radius: 26%;
+  background: linear-gradient(160deg, rgba(72, 56, 132, 0.95), rgba(30, 23, 62, 0.95));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 6px 14px rgba(0, 0, 0, 0.45);
+  color: #d6dfff;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  touch-action: none;
+  transition: transform 0.08s, background 0.12s, box-shadow 0.12s;
+}
+.tp-btn svg { width: 46%; height: 46%; fill: currentColor; }
+.tp-btn.up { grid-area: 1 / 2; }
+.tp-btn.left { grid-area: 2 / 1; }
+.tp-btn.right { grid-area: 2 / 3; }
+.tp-btn.down { grid-area: 3 / 2; }
+.tp-btn.active,
+.tp-btn:active {
+  background: linear-gradient(160deg, #6d5bff, #3a2b8f);
+  color: #fff;
+  transform: scale(0.92);
+  box-shadow: 0 0 20px rgba(120, 100, 255, 0.8);
+}
+
+.tp-hub {
+  grid-area: 2 / 2;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(160, 235, 255, 0.85);
+  background: radial-gradient(circle, rgba(100, 210, 255, 0.2), rgba(18, 14, 42, 0.9));
+  border: 1px solid rgba(120, 210, 255, 0.25);
+}
+
+.tp-grab {
+  width: clamp(88px, 10.8vmin, 122px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  touch-action: none;
+  background: radial-gradient(circle at 36% 28%, #ffe6f3 0%, #ff8ec6 32%, #ff3f9c 62%, #b5126a 100%);
+  box-shadow:
+    0 0 0 5px rgba(255, 79, 168, 0.16),
+    0 0 32px rgba(255, 79, 168, 0.55),
+    0 12px 26px rgba(0, 0, 0, 0.5),
+    inset 0 -7px 16px rgba(120, 0, 60, 0.55),
+    inset 0 3px 9px rgba(255, 255, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  transition: transform 0.09s, box-shadow 0.15s, filter 0.2s;
+}
+.tp-grab:active,
+.tp-grab.pressed {
+  transform: scale(0.92);
+  box-shadow: 0 0 0 8px rgba(255, 79, 168, 0.22), 0 0 50px rgba(255, 79, 168, 0.85);
+}
+.tp-grab:disabled {
+  filter: grayscale(0.55) brightness(0.65);
+  cursor: default;
+}
+.tp-grab-main {
+  font-weight: 900;
+  font-size: clamp(16px, 2vmin, 22px);
+  color: #2a0013;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+.tp-grab-sub {
+  font-weight: 800;
+  font-size: clamp(9.5px, 1.15vmin, 12px);
+  color: rgba(55, 0, 28, 0.78);
+}
+
+/* 터치 패드가 켜져 있을 때는 키보드 힌트를 위로 올리거나 숨김 */
+.touch-pad:not(.hidden) ~ .keyboard-hint {
+  display: none;
+}
+
+@media (orientation: portrait) {
+  .touch-pad {
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: clamp(78px, 11.5vh, 145px);
+    padding: 8px 16px;
+    gap: 18px;
+  }
+  .touch-pad.hidden {
+    transform: translateX(-50%) translateY(18px) scale(0.95);
+  }
+  .qr-panel {
+    right: 3.5vw;
+    top: 9.5vh;
+    bottom: auto;
+    transform: none;
+    width: min(32vw, 155px);
+    padding: 8px;
+  }
+  .qr-panel .qr-hint { display: none; }
+}

@@ -23,6 +23,8 @@
 
   const S = {
     ws: null,
+    relayMode: false,
+    room: '',
     everConnected: false,
     connected: false,
     phase: 'idle',
@@ -57,17 +59,98 @@
     return proto + '//' + location.host + '/ws';
   }
 
+  function readRoomFromUrl() {
+    const m = location.search.match(/[?&]room=([A-Za-z0-9]+)/);
+    return m ? m[1].toUpperCase() : '';
+  }
+
+  function relayTopic() {
+    return 'luckygrab-' + (S.room || 'default').toLowerCase();
+  }
+
+  function publishRelay(obj) {
+    if (!S.room) return Promise.resolve();
+    return fetch('https://ntfy.sh/' + relayTopic(), {
+      method: 'POST',
+      body: JSON.stringify(obj),
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
+    }).catch(() => {});
+  }
+
+  function connectRelayMode() {
+    S.relayMode = true;
+    S.connected = true;
+    S.everConnected = true;
+    S.isActive = true;
+    S.phase = 'ready';
+    S.label = '스마트폰';
+    elBlocker.classList.add('hide');
+    elFoot.textContent = '꾹 누르고 있으면 집게가 계속 움직여요 (방 ' + S.room + ')';
+    render();
+    publishRelay({ k: 'hello', label: S.label });
+
+    let ws;
+    try {
+      ws = new WebSocket('wss://ntfy.sh/' + relayTopic() + '/ws');
+    } catch (e) {
+      return;
+    }
+    ws.onmessage = (ev) => {
+      let wrapper, msg;
+      try {
+        wrapper = JSON.parse(ev.data);
+        if (!wrapper || wrapper.event !== 'message' || !wrapper.message) return;
+        msg = JSON.parse(wrapper.message);
+      } catch (e) { return; }
+      if (!msg || typeof msg !== 'object') return;
+      if (msg.k === 'busy') {
+        S.phase = 'grabbing';
+        render();
+      } else if (msg.k === 'win' && msg.prize) {
+        clearTimeout(myGrabTimer);
+        S.phase = 'result';
+        if (S.myGrab) {
+          S.myGrab = false;
+          showWin(msg.prize, msg.label);
+        } else {
+          toast('🎉 ' + msg.prize.name + ' 당첨!', 3200);
+        }
+        render();
+      } else if (msg.k === 'ready') {
+        S.phase = 'ready';
+        S.myGrab = false;
+        render();
+      }
+    };
+    ws.onclose = () => {
+      setTimeout(connectRelayMode, 2500);
+    };
+  }
+
   function connect() {
+    S.room = readRoomFromUrl();
+    if (S.room && /\.github\.io$/i.test(location.hostname)) {
+      connectRelayMode();
+      return;
+    }
     let ws;
     try {
       ws = new WebSocket(wsUrl());
     } catch (e) {
+      if (S.room) { connectRelayMode(); return; }
       setTimeout(connect, 2000);
       return;
     }
     S.ws = ws;
+    const fallbackTimer = setTimeout(() => {
+      if (!S.connected && S.room) {
+        try { ws.close(); } catch (_) {}
+        connectRelayMode();
+      }
+    }, 1500);
 
     ws.onopen = () => {
+      clearTimeout(fallbackTimer);
       S.connected = true;
       S.everConnected = true;
       ws.send(JSON.stringify({ type: 'hello', role: 'controller' }));
@@ -82,6 +165,12 @@
     };
 
     ws.onclose = () => {
+      clearTimeout(fallbackTimer);
+      if (S.relayMode) return;
+      if (!S.everConnected && S.room) {
+        connectRelayMode();
+        return;
+      }
       S.connected = false;
       S.isActive = false;
       releaseAll();
@@ -100,6 +189,11 @@
   }
 
   function send(obj) {
+    if (S.relayMode) {
+      if (obj.type === 'input') publishRelay({ k: 'in', x: obj.x, z: obj.z });
+      else if (obj.type === 'grab') publishRelay({ k: 'grab', label: S.label || '스마트폰' });
+      return true;
+    }
     if (S.ws && S.ws.readyState === 1) {
       S.ws.send(JSON.stringify(obj));
       return true;
