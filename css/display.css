@@ -56,7 +56,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 }
 
 .brand-kicker {
-  font-size: clamp(9px, 0.92vw, 16px);
+  font-size: calc(clamp(9px, 0.92vw, 16px) * var(--font-scale, 1));
   letter-spacing: 0.62em;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.55);
@@ -66,7 +66,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 }
 
 .brand-sub {
-  font-size: clamp(10px, 0.95vw, 17px);
+  font-size: calc(clamp(10px, 0.95vw, 17px) * var(--font-scale, 1));
   letter-spacing: 0.14em;
   color: rgba(214, 200, 255, 0.62);
 }
@@ -83,7 +83,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
   background: rgba(14, 11, 32, 0.6);
   border: 1px solid rgba(140, 120, 255, 0.22);
   backdrop-filter: blur(8px);
-  font-size: clamp(11px, 1.03vw, 17px);
+  font-size: calc(clamp(11px, 1.03vw, 17px) * var(--font-scale, 1));
   font-weight: 600;
   color: #ddd2ff;
   max-width: 46vw;
@@ -121,7 +121,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
   right: clamp(12px, 2vw, 40px);
   top: 50%;
   transform: translateY(-50%);
-  width: clamp(168px, 16.5vw, 300px);
+  width: calc(clamp(168px, 16.5vw, 300px) * var(--qr-scale, 1));
   padding: clamp(10px, 1.1vw, 18px);
   border-radius: clamp(16px, 1.6vw, 26px);
   background: linear-gradient(160deg, rgba(30, 24, 62, 0.86), rgba(12, 10, 28, 0.9));
@@ -131,14 +131,14 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
     inset 0 0 40px rgba(80, 200, 255, 0.08),
     0 0 0 1px rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(12px);
-  transition: width 0.55s cubic-bezier(0.2, 0.9, 0.3, 1), padding 0.55s, right 0.55s,
-    opacity 0.4s, transform 0.55s cubic-bezier(0.2, 0.9, 0.3, 1);
+  transition: width 0.45s cubic-bezier(0.2, 0.9, 0.3, 1), padding 0.45s, right 0.45s, left 0.45s, top 0.45s, bottom 0.45s,
+    opacity 0.4s, transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1);
   pointer-events: auto;
   z-index: 6;
 }
 
 .qr-head {
-  font-size: clamp(11px, 1.02vw, 17px);
+  font-size: calc(clamp(11px, 1.02vw, 17px) * var(--font-scale, 1));
   font-weight: 800;
   letter-spacing: 0.02em;
   color: #eafcff;
@@ -218,7 +218,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 
 .prize-label {
   flex: none;
-  font-size: clamp(9px, 0.82vw, 14px);
+  font-size: calc(clamp(9px, 0.82vw, 14px) * var(--font-scale, 1));
   font-weight: 800;
   letter-spacing: 0.06em;
   color: rgba(255, 255, 255, 0.55);
@@ -245,7 +245,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
   background: rgba(255, 255, 255, 0.045);
   border: 1px solid rgba(255, 255, 255, 0.08);
   white-space: nowrap;
-  font-size: clamp(9px, 0.8vw, 14px);
+  font-size: calc(clamp(9px, 0.8vw, 14px) * var(--font-scale, 1));
   font-weight: 600;
   color: #eee6ff;
 }
@@ -347,7 +347,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 .banner.show .banner-card { transform: scale(1) translateY(0); }
 
 .banner-kicker {
-  font-size: clamp(13px, 1.55vw, 26px);
+  font-size: calc(clamp(13px, 1.55vw, 26px) * var(--font-scale, 1));
   font-weight: 900;
   letter-spacing: 0.42em;
   text-indent: 0.42em;
@@ -357,7 +357,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 }
 
 .banner-prize {
-  font-size: clamp(26px, 4.5vw, 72px);
+  font-size: calc(clamp(26px, 4.5vw, 72px) * var(--font-scale, 1));
   font-weight: 900;
   line-height: 1.18;
   letter-spacing: -0.02em;
@@ -373,7 +373,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 
 .banner-player {
   margin-top: 0.5em;
-  font-size: clamp(11px, 1.1vw, 19px);
+  font-size: calc(clamp(11px, 1.1vw, 19px) * var(--font-scale, 1));
   font-weight: 700;
   letter-spacing: 0.16em;
   color: rgba(255, 255, 255, 0.72);
@@ -425,6 +425,150 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 }
 .qr-panel.compact .qr-room { display: none; }
 .qr-panel.hidden { opacity: 0; pointer-events: none; transform: translateY(20px) scale(0.92); }
+
+/* QR 위치 변형 */
+.qr-panel.pos-bottom-right {
+  left: auto;
+  right: clamp(14px, 2vw, 36px);
+  top: auto;
+  bottom: clamp(72px, 10.5vh, 128px);
+  transform: none;
+}
+.qr-panel.pos-bottom-left {
+  left: clamp(14px, 2vw, 36px);
+  right: auto;
+  top: auto;
+  bottom: clamp(72px, 10.5vh, 128px);
+  transform: none;
+}
+.qr-panel.pos-top-right {
+  left: auto;
+  right: clamp(14px, 2vw, 36px);
+  top: clamp(64px, 9vh, 108px);
+  bottom: auto;
+  transform: none;
+}
+.qr-panel.pos-top-left {
+  left: clamp(14px, 2vw, 36px);
+  right: auto;
+  top: clamp(64px, 9vh, 108px);
+  bottom: auto;
+  transform: none;
+}
+.qr-panel.pos-bottom-center {
+  left: 50%;
+  right: auto;
+  top: auto;
+  bottom: clamp(72px, 10.5vh, 128px);
+  transform: translateX(-50%);
+}
+
+/* 관리자 설정 패널 */
+.admin-panel {
+  position: absolute;
+  right: clamp(12px, 1.8vw, 28px);
+  top: clamp(56px, 8vh, 84px);
+  width: min(92vw, 320px);
+  padding: 16px 18px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, rgba(28, 22, 58, 0.96), rgba(12, 9, 28, 0.98));
+  border: 1px solid rgba(140, 220, 255, 0.35);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  pointer-events: auto;
+  z-index: 20;
+  color: #f3eeff;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: opacity 0.22s ease, transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.admin-panel.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-10px) scale(0.96);
+}
+.adm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+}
+.adm-close {
+  border: 0;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-weight: 800;
+}
+.adm-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(220, 210, 255, 0.85);
+}
+.adm-row label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.adm-row label b {
+  color: var(--cyan);
+}
+.adm-row.switch {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.adm-row input[type="range"] {
+  width: 100%;
+  accent-color: var(--cyan);
+  cursor: pointer;
+}
+.adm-row select {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(140, 120, 255, 0.35);
+  background: rgba(14, 11, 32, 0.9);
+  color: #fff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  outline: none;
+}
+.adm-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--cyan);
+}
+.adm-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.adm-btn {
+  flex: 1;
+  padding: 9px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #eee6ff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.adm-btn.primary {
+  background: linear-gradient(135deg, #ff4fa8, #8b5cf6);
+  border-color: transparent;
+  color: #fff;
+}
 
 .touch-pad {
   position: absolute;

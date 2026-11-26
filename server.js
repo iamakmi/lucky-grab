@@ -15,8 +15,51 @@ const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const DATA_DIR = path.join(ROOT, 'data');
 const STATE_FILE = path.join(DATA_DIR, 'prize-state.json');
+const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const BASE_PORT = parseInt(process.env.PORT, 10) || 3000;
 const MAX_PORT_TRIES = 12;
+
+const DEFAULT_SETTINGS = {
+  fontScale: 100,          // 70 ~ 160 (%)
+  qrPosition: 'right',     // right | bottom-right | bottom-left | top-right | top-left | bottom-center
+  qrSize: 100,             // 70 ~ 140 (%)
+  qrVisible: true
+};
+
+function loadSettings() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
+    return Object.assign({}, DEFAULT_SETTINGS, raw || {});
+  } catch (_) {
+    return Object.assign({}, DEFAULT_SETTINGS);
+  }
+}
+
+let uiSettings = loadSettings();
+
+function saveSettings(patch) {
+  const next = Object.assign({}, uiSettings);
+  if (patch && typeof patch === 'object') {
+    if (patch.fontScale != null && isFinite(Number(patch.fontScale))) {
+      next.fontScale = Math.min(160, Math.max(70, Math.round(Number(patch.fontScale))));
+    }
+    if (['right', 'bottom-right', 'bottom-left', 'top-right', 'top-left', 'bottom-center'].includes(patch.qrPosition)) {
+      next.qrPosition = patch.qrPosition;
+    }
+    if (patch.qrSize != null && isFinite(Number(patch.qrSize))) {
+      next.qrSize = Math.min(140, Math.max(70, Math.round(Number(patch.qrSize))));
+    }
+    if (typeof patch.qrVisible === 'boolean') next.qrVisible = patch.qrVisible;
+  }
+  uiSettings = next;
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(uiSettings, null, 2));
+  } catch (err) {
+    console.warn('⚠️  설정을 저장하지 못했습니다:', err.message);
+  }
+  return uiSettings;
+}
 
 /* ------------------------------------------------------------------ */
 /* 설정 불러오기                                                       */
@@ -392,6 +435,7 @@ wss.on('connection', (ws) => {
           subtitle: config.subtitle,
           grabDurationMs: config.grabDurationMs,
           prizes: publicPrizes(),
+          settings: uiSettings,
           urls: {
             local: `http://localhost:${port}/controller`,
             lan: LAN ? `http://${LAN.address}:${port}/controller` : null,
@@ -413,6 +457,12 @@ wss.on('connection', (ws) => {
       broadcast({ type: 'input', x, z, playerId: id }, (c) => c.role === 'display');
       return;
     }
+
+      if (client.role === 'display' && msg.type === 'settings') {
+        const updated = saveSettings(msg.settings || msg);
+        broadcast({ type: 'settings', settings: updated }, (c) => c.role === 'display');
+        return;
+      }
 
       if (client.role === 'display' && msg.resetStock === true) {
         for (const p of config.prizes) remaining.set(p.id, p.quantity);
@@ -480,6 +530,7 @@ const server = http.createServer((req, res) => {
       subtitle: config.subtitle,
       grabDurationMs: config.grabDurationMs,
       prizes: publicPrizes(),
+      settings: uiSettings,
       lanUrl: lanUrl(port),
       localUrl: localhostUrl(port),
       controllerPath: '/controller',

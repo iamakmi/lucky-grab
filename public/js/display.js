@@ -61,6 +61,22 @@
     { id: 'airpods', name: '에어팟 프로', color: '#38bdf8', emoji: '🎧', weight: 3, quantity: 1, remaining: 1 }
   ];
 
+  const DEFAULT_UI_SETTINGS = {
+    fontScale: 100,
+    qrPosition: 'right',
+    qrSize: 100,
+    qrVisible: true
+  };
+
+  function loadLocalUiSettings() {
+    try {
+      const raw = JSON.parse(localStorage.getItem('luckygrab:uiSettings') || '{}');
+      return Object.assign({}, DEFAULT_UI_SETTINGS, raw || {});
+    } catch (_) {
+      return Object.assign({}, DEFAULT_UI_SETTINGS);
+    }
+  }
+
   const S = {
     connected: false,
     standalone: false,
@@ -74,7 +90,8 @@
     config: null,
     lastPrize: null,
     qrExpanded: true,
-    padVisible: true
+    padVisible: true,
+    uiSettings: loadLocalUiSettings()
   };
 
   /* --------------------------------------------------------------- canvas */
@@ -128,11 +145,12 @@
     if (portrait) {
       return { x: W * 0.04, y: H * 0.125, w: W * 0.92, h: H * 0.635 };
     }
-    const qrOpen = S.qrExpanded;
+    const u = S.uiSettings || DEFAULT_UI_SETTINGS;
+    const qrSide = S.qrExpanded && u.qrVisible !== false && u.qrPosition === 'right';
     return {
-      x: W * (qrOpen ? 0.028 : 0.09),
+      x: W * (qrSide ? 0.028 : 0.09),
       y: H * 0.105,
-      w: W * (qrOpen ? 0.705 : 0.815),
+      w: W * (qrSide ? 0.705 : 0.815),
       h: H * 0.775
     };
   }
@@ -1276,6 +1294,7 @@
       case 'hello':
         S.config = msg.config;
         if (msg.config && msg.config.title && msg.config.subtitle) elBrandSub.textContent = msg.config.subtitle;
+        if (msg.config && msg.config.settings) applyUiSettings(msg.config.settings, false);
         setupQR(msg.config);
         if (msg.config && msg.config.prizes) {
           const hadPrizes = S.prizes.length > 0;
@@ -1284,6 +1303,9 @@
           // 경품 목록을 받은 뒤 캡슐 더미를 경품 색으로 다시 채웁니다
           if (!hadPrizes || !capsules.length) buildPile();
         }
+        break;
+      case 'settings':
+        if (msg.settings) applyUiSettings(msg.settings, false);
         break;
       case 'state':
         S.phase = msg.phase;
@@ -1756,6 +1778,87 @@
     const resetBtn = $('resetStockBtn');
     if (resetBtn) {
       resetBtn.addEventListener('click', resetPrizeStock);
+    }
+
+    setupAdminPanel();
+  }
+
+  function applyUiSettings(patch, persist) {
+    if (patch && typeof patch === 'object') {
+      S.uiSettings = Object.assign({}, S.uiSettings, patch);
+    }
+    const u = S.uiSettings;
+    const fs = clamp(Number(u.fontScale) || 100, 70, 160);
+    const qs = clamp(Number(u.qrSize) || 100, 70, 140);
+    const pos = u.qrPosition || 'right';
+    const vis = u.qrVisible !== false;
+
+    document.documentElement.style.setProperty('--font-scale', (fs / 100).toFixed(2));
+    document.documentElement.style.setProperty('--qr-scale', (qs / 100).toFixed(2));
+
+    elQrPanel.classList.remove('pos-right', 'pos-bottom-right', 'pos-bottom-left', 'pos-top-right', 'pos-top-left', 'pos-bottom-center');
+    if (pos !== 'right') elQrPanel.classList.add('pos-' + pos);
+    elQrPanel.classList.toggle('hidden', !vis);
+
+    const fInp = $('admFontScale'), fVal = $('admFontVal');
+    const pSel = $('admQrPos');
+    const sInp = $('admQrSize'), sVal = $('admQrSizeVal');
+    const vChk = $('admQrVis');
+    if (fInp) fInp.value = fs;
+    if (fVal) fVal.textContent = fs + '%';
+    if (pSel) pSel.value = pos;
+    if (sInp) sInp.value = qs;
+    if (sVal) sVal.textContent = qs + '%';
+    if (vChk) vChk.checked = vis;
+
+    layout.target = computeTargetRect();
+
+    if (persist !== false) {
+      try { localStorage.setItem('luckygrab:uiSettings', JSON.stringify(S.uiSettings)); } catch (_) {}
+      if (S.connected) {
+        net.send({ type: 'settings', settings: S.uiSettings });
+      }
+    }
+  }
+
+  function setupAdminPanel() {
+    const panel = $('adminPanel');
+    const toggleBtn = $('adminToggleBtn');
+    const closeBtn = $('adminCloseBtn');
+    const fInp = $('admFontScale');
+    const pSel = $('admQrPos');
+    const sInp = $('admQrSize');
+    const vChk = $('admQrVis');
+    const resetUiBtn = $('admResetUiBtn');
+    const resetStockAdm = $('admResetStockBtn');
+
+    applyUiSettings(S.uiSettings, false);
+
+    if (toggleBtn && panel) {
+      toggleBtn.addEventListener('click', () => {
+        panel.classList.toggle('hidden');
+      });
+    }
+    if (closeBtn && panel) {
+      closeBtn.addEventListener('click', () => panel.classList.add('hidden'));
+    }
+    if (fInp) {
+      fInp.addEventListener('input', () => applyUiSettings({ fontScale: Number(fInp.value) }, true));
+    }
+    if (pSel) {
+      pSel.addEventListener('change', () => applyUiSettings({ qrPosition: pSel.value }, true));
+    }
+    if (sInp) {
+      sInp.addEventListener('input', () => applyUiSettings({ qrSize: Number(sInp.value) }, true));
+    }
+    if (vChk) {
+      vChk.addEventListener('change', () => applyUiSettings({ qrVisible: vChk.checked }, true));
+    }
+    if (resetUiBtn) {
+      resetUiBtn.addEventListener('click', () => applyUiSettings(DEFAULT_UI_SETTINGS, true));
+    }
+    if (resetStockAdm) {
+      resetStockAdm.addEventListener('click', resetPrizeStock);
     }
   }
 
