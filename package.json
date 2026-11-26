@@ -1,0 +1,23 @@
+{
+  "name": "lucky-grab",
+  "version": "1.0.0",
+  "private": true,
+  "description": "QR 스마트폰 컨트롤러로 조작하는 럭키드로우(인형뽑기) 웹앱 — 설치 의존성 없음",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "reset": "node -e \"require('fs').rmSync('data/prize-state.json',{force:true});console.log('경품 재고를 prizes.json 값으로 초기화했습니다.')\""
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "keywords": [
+    "lucky-draw",
+    "claw-machine",
+    "websocket",
+    "qr",
+    "canvas"
+  ],
+  "license": "MIT"
+}

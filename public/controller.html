@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#08060f" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<title>LUCKY GRAB · 컨트롤러</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="/css/controller.css" />
+</head>
+<body>
+<div class="app" id="app">
+
+  <header class="top">
+    <div class="logo">LUCKY<span>GRAB</span></div>
+    <div class="pill" id="connPill">
+      <span class="dot"></span>
+      <span id="connText">연결 중…</span>
+    </div>
+  </header>
+
+  <div class="turn" id="turnCard">
+    <div class="turn-kicker" id="turnKicker">SMARTPHONE CONTROLLER</div>
+    <div class="turn-title" id="turnTitle">연결하는 중…</div>
+    <div class="turn-sub" id="turnSub">잠시만 기다려 주세요</div>
+  </div>
+
+  <main class="controls">
+    <div class="dpad" id="dpad">
+      <button class="dbtn up" data-dir="up" aria-label="앞으로">
+        <svg viewBox="0 0 24 24"><path d="M12 5l7 8H5z"/></svg>
+      </button>
+      <button class="dbtn left" data-dir="left" aria-label="왼쪽">
+        <svg viewBox="0 0 24 24"><path d="M5 12l8-7v14z"/></svg>
+      </button>
+      <div class="hub"><span id="hubText">집게</span></div>
+      <button class="dbtn right" data-dir="right" aria-label="오른쪽">
+        <svg viewBox="0 0 24 24"><path d="M19 12l-8 7V5z"/></svg>
+      </button>
+      <button class="dbtn down" data-dir="down" aria-label="뒤로">
+        <svg viewBox="0 0 24 24"><path d="M12 19l-7-8h14z"/></svg>
+      </button>
+    </div>
+
+    <button class="grab" id="grabBtn" aria-label="뽑기">
+      <span class="grab-ring"></span>
+      <span class="grab-label">GRAB</span>
+      <span class="grab-sub">뽑기!</span>
+    </button>
+  </main>
+
+  <div class="foot" id="foot">꾹 누르고 있으면 집게가 계속 움직여요</div>
+
+  <div class="overlay" id="overlay">
+    <div class="win-card">
+      <div class="win-kicker">당첨!</div>
+      <div class="win-prize" id="winPrize">경품</div>
+      <div class="win-sub" id="winSub"></div>
+      <button class="win-close" id="winClose">확인</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="blocker" id="blocker">
+    <div class="blocker-inner">
+      <div class="spin"></div>
+      <div class="blocker-text">서버에 연결하는 중…</div>
+      <div class="blocker-sub">메인 화면이 켜져 있는지 확인해 주세요</div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/controller.js"></script>
+</body>
+</html>
