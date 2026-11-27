@@ -201,6 +201,14 @@
         <label>문자 크기 (<span id="fontScaleVal">100</span>%)
           <input type="range" id="fontScaleInp" min="70" max="160" step="5" value="100" />
         </label>
+        <label>문자 위치
+          <select id="titlePosSel">
+            <option value="top-center">상단 가운데 (기본)</option>
+            <option value="top-left">왼쪽 위</option>
+            <option value="top-right">오른쪽 위</option>
+            <option value="bottom-center">하단 가운데</option>
+          </select>
+        </label>
         <label>QR 위치
           <select id="qrPosSel">
             <option value="right">오른쪽 가운데 (기본)</option>
@@ -303,10 +311,11 @@
     }
 
     function loadUi() {
-      var u = { fontScale: 100, qrPosition: 'right', qrSize: 100, qrVisible: true };
+      var u = { fontScale: 100, titlePosition: 'top-center', qrPosition: 'right', qrSize: 100, qrVisible: true };
       try { u = Object.assign(u, JSON.parse(localStorage.getItem('luckygrab:uiSettings') || '{}')); } catch (_) {}
       $('fontScaleInp').value = u.fontScale || 100;
       $('fontScaleVal').textContent = u.fontScale || 100;
+      if ($('titlePosSel')) $('titlePosSel').value = u.titlePosition || 'top-center';
       $('qrPosSel').value = u.qrPosition || 'right';
       $('qrSizeInp').value = u.qrSize || 100;
       $('qrSizeVal').textContent = u.qrSize || 100;
@@ -319,6 +328,7 @@
     $('saveUiBtn').addEventListener('click', function () {
       var u = {
         fontScale: Number($('fontScaleInp').value) || 100,
+        titlePosition: $('titlePosSel') ? $('titlePosSel').value : 'top-center',
         qrPosition: $('qrPosSel').value,
         qrSize: Number($('qrSizeInp').value) || 100,
         qrVisible: $('qrVisChk').checked

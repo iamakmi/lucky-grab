@@ -21,6 +21,7 @@ const MAX_PORT_TRIES = 12;
 
 const DEFAULT_SETTINGS = {
   fontScale: 100,          // 70 ~ 160 (%)
+  titlePosition: 'top-center', // top-center | top-left | top-right | bottom-center
   qrPosition: 'right',     // right | bottom-right | bottom-left | top-right | top-left | bottom-center
   qrSize: 100,             // 70 ~ 140 (%)
   qrVisible: true
@@ -42,6 +43,9 @@ function saveSettings(patch) {
   if (patch && typeof patch === 'object') {
     if (patch.fontScale != null && isFinite(Number(patch.fontScale))) {
       next.fontScale = Math.min(160, Math.max(70, Math.round(Number(patch.fontScale))));
+    }
+    if (['top-center', 'top-left', 'top-right', 'bottom-center'].includes(patch.titlePosition)) {
+      next.titlePosition = patch.titlePosition;
     }
     if (['right', 'bottom-right', 'bottom-left', 'top-right', 'top-left', 'bottom-center'].includes(patch.qrPosition)) {
       next.qrPosition = patch.qrPosition;

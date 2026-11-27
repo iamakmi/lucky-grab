@@ -63,6 +63,7 @@
 
   const DEFAULT_UI_SETTINGS = {
     fontScale: 100,
+    titlePosition: 'top-center',
     qrPosition: 'right',
     qrSize: 100,
     qrVisible: true
@@ -2179,22 +2180,31 @@
     const u = S.uiSettings;
     const fs = clamp(Number(u.fontScale) || 100, 70, 160);
     const qs = clamp(Number(u.qrSize) || 100, 70, 140);
+    const tpos = u.titlePosition || 'top-center';
     const pos = u.qrPosition || 'right';
     const vis = u.qrVisible !== false;
 
     document.documentElement.style.setProperty('--font-scale', (fs / 100).toFixed(2));
     document.documentElement.style.setProperty('--qr-scale', (qs / 100).toFixed(2));
 
+    const elBrand = document.querySelector('.brand');
+    if (elBrand) {
+      elBrand.classList.remove('tpos-top-center', 'tpos-top-left', 'tpos-top-right', 'tpos-bottom-center');
+      if (tpos !== 'top-center') elBrand.classList.add('tpos-' + tpos);
+    }
+
     elQrPanel.classList.remove('pos-right', 'pos-bottom-right', 'pos-bottom-left', 'pos-top-right', 'pos-top-left', 'pos-bottom-center');
     if (pos !== 'right') elQrPanel.classList.add('pos-' + pos);
     elQrPanel.classList.toggle('hidden', !vis);
 
     const fInp = $('admFontScale'), fVal = $('admFontVal');
+    const tpSel = $('admTitlePos');
     const pSel = $('admQrPos');
     const sInp = $('admQrSize'), sVal = $('admQrSizeVal');
     const vChk = $('admQrVis');
     if (fInp) fInp.value = fs;
     if (fVal) fVal.textContent = fs + '%';
+    if (tpSel) tpSel.value = tpos;
     if (pSel) pSel.value = pos;
     if (sInp) sInp.value = qs;
     if (sVal) sVal.textContent = qs + '%';
@@ -2233,6 +2243,10 @@
     }
     if (fInp) {
       fInp.addEventListener('input', () => applyUiSettings({ fontScale: Number(fInp.value) }, true));
+    }
+    const tpSel = $('admTitlePos');
+    if (tpSel) {
+      tpSel.addEventListener('change', () => applyUiSettings({ titlePosition: tpSel.value }, true));
     }
     if (pSel) {
       pSel.addEventListener('change', () => applyUiSettings({ qrPosition: pSel.value }, true));
