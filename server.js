@@ -42,7 +42,7 @@ function saveSettings(patch) {
   const next = Object.assign({}, uiSettings);
   if (patch && typeof patch === 'object') {
     if (patch.fontScale != null && isFinite(Number(patch.fontScale))) {
-      next.fontScale = Math.min(160, Math.max(70, Math.round(Number(patch.fontScale))));
+      next.fontScale = Math.min(200, Math.max(10, Math.round(Number(patch.fontScale))));
     }
     if (['top-center', 'top-left', 'top-right', 'bottom-center'].includes(patch.titlePosition)) {
       next.titlePosition = patch.titlePosition;

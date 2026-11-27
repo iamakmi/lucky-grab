@@ -2178,7 +2178,7 @@
       S.uiSettings = Object.assign({}, S.uiSettings, patch);
     }
     const u = S.uiSettings;
-    const fs = clamp(Number(u.fontScale) || 100, 70, 160);
+    const fs = clamp(Number(u.fontScale) || 100, 10, 200);
     const qs = clamp(Number(u.qrSize) || 100, 70, 140);
     const tpos = u.titlePosition || 'top-center';
     const pos = u.qrPosition || 'right';
